@@ -43,12 +43,12 @@ namespace TP.ConcurrentProgramming.Data
     {
             Position = new Vector(Position.x + Velocity.x, Position.y + Velocity.y);
 
-            if (Position.x <= 0 || Position.x >= 372)
+            if (Position.x <= 0 || Position.x >= 372)  //Szerokość stołu = 400 - 20 (Średnica) - 8 (Granica)
             {
                 Velocity = new Vector(-Velocity.x, Velocity.y);
             }
 
-            if (Position.y <= 0 || Position.y >= 392)
+            if (Position.y <= 0 || Position.y >= 392) //Wysokość stołu = 400 - 20 (Średnica) - 8 (Granica)
             {
                 Velocity = new Vector(Velocity.x, -Velocity.y);
             }
