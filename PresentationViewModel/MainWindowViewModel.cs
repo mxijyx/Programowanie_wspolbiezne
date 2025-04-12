@@ -43,10 +43,25 @@ namespace TP.ConcurrentProgramming.Presentation.ViewModel
       StopCommand = new RelayCommand (Stop);
     }
 
-    #endregion ctor
+        #endregion ctor
 
-    #region public API
-    public ObservableCollection<ModelIBall> Balls { get; } = new ObservableCollection<ModelIBall>();
+        #region public API
+        public void Start()
+        {
+            if (Disposed)
+                throw new ObjectDisposedException(nameof(MainWindowViewModel));
+            if (int.TryParse(this.numberOfBalls, out int ballsCount))
+            {
+                Balls.Clear();
+                ModelLayer.Start(ballsCount);
+            }
+        }
+
+        public void Stop()
+        {
+            Balls.Clear();
+        }
+        public ObservableCollection<ModelIBall> Balls { get; } = new ObservableCollection<ModelIBall>();
 
     #endregion public API
 
