@@ -43,12 +43,12 @@ namespace TP.ConcurrentProgramming.Data
     {
             Position = new Vector(Position.x + Velocity.x, Position.y + Velocity.y);
 
-            if (Position.x <= 0 || Position.x >= 370)
+            if (Position.x <= 0 || Position.x >= 372)
             {
                 Velocity = new Vector(-Velocity.x, Velocity.y);
             }
 
-            if (Position.y <= 0 || Position.y >= 390)
+            if (Position.y <= 0 || Position.y >= 392)
             {
                 Velocity = new Vector(Velocity.x, -Velocity.y);
             }
