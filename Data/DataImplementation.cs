@@ -83,7 +83,7 @@ namespace TP.ConcurrentProgramming.Data
     private void Move(object? x)
     {
       foreach (Ball item in BallsList)
-        item.Move();
+        item.Move(0); //TODO
     }
 
     #endregion private
