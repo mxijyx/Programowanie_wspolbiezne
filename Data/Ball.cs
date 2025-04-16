@@ -39,16 +39,16 @@ namespace TP.ConcurrentProgramming.Data
       NewPositionNotification?.Invoke(this, Position);
     }
 
-    internal void Move(int v) //TODO (board and ball dimentions)
+    internal void Move(float diameter, float boardWidth, float boardHeight, float borderThickness) //TODO (board and ball dimentions)
     {
             Position = new Vector(Position.x + Velocity.x, Position.y + Velocity.y);
 
-            if (Position.x <= 0 || Position.x >= 372)  //Szerokość stołu = 400 - 20 (Średnica) - 8 (Granica)
+            if (Position.x <= 0 || Position.x >= boardWidth - diameter - borderThickness)  //Szerokość stołu = 400 - 20 (Średnica) - 8 (Granica)
             {
                 Velocity = new Vector(-Velocity.x, Velocity.y);
             }
 
-            if (Position.y <= 0 || Position.y >= 392) //Wysokość stołu = 400 - 20 (Średnica) - 8 (Granica)
+            if (Position.y <= 0 || Position.y >= boardHeight - diameter - borderThickness) //Wysokość stołu = 420 - 20 (Średnica) - 8 (Granica)
             {
                 Velocity = new Vector(Velocity.x, -Velocity.y);
             }

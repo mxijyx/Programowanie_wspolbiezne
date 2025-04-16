@@ -9,58 +9,61 @@
     <Window.DataContext>
         <vm:MainWindowViewModel />
     </Window.DataContext>
-    <Grid>
-        <Border BorderThickness="4" BorderBrush="Green" Height="420" Width="400">
-            <ItemsControl ItemsSource="{Binding Balls}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <Canvas />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Ellipse Width= "{Binding Diameter}" Height="{Binding Diameter}" Fill="Blue" />
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-                <ItemsControl.ItemContainerStyle>
-                    <Style TargetType="ContentPresenter">
-                        <Setter Property="Canvas.Top" Value="{Binding Top}" />
-                        <Setter Property="Canvas.Left" Value="{Binding Left}" />
-                    </Style>
-                </ItemsControl.ItemContainerStyle>
+    <Viewbox Stretch="Uniform">
+        <Grid>
+            <Border BorderThickness="4" BorderBrush="Green" Height="420" Width="400">
+                <ItemsControl ItemsSource="{Binding Balls}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Ellipse Width= "{Binding Diameter}" Height="{Binding Diameter}" Fill="Blue" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                    <ItemsControl.ItemContainerStyle>
+                        <Style TargetType="ContentPresenter">
+                            <Setter Property="Canvas.Top" Value="{Binding Top}" />
+                            <Setter Property="Canvas.Left" Value="{Binding Left}" />
+                        </Style>
+                    </ItemsControl.ItemContainerStyle>
 
-            </ItemsControl>
-        </Border>
-        <TextBox
-            FontSize="20"
-            HorizontalAlignment="Left"
-            Margin="80,49,0,0"
-            Text ="{Binding _numberOfBalls}"
-            TextWrapping="Wrap"
-            VerticalAlignment="Top"
-            Width="120"
-            Visibility="Visible"/>
-        <Button
-            Background="#309bff"
-            Command="{Binding StartCommand}"
-            Content="Start"
-            FontSize="20"
-            Height="32"
-            HorizontalAlignment="Left"
-            Margin="110,98,0,0"
-            VerticalAlignment="Top"
-            Width="60"
-            Visibility="Visible"/>
-        <Button
-            Background="#309bff"
-            Command="{Binding StopCommand}"
-            Content="Stop"
-            FontSize="20"
-            Height="32"
-            HorizontalAlignment="Left"
-            Margin="110,158,0,0"
-            VerticalAlignment="Top"
-            Width="60"
-            Visibility="Visible"/>
-    </Grid>
+                </ItemsControl>
+            </Border>
+            <TextBox
+                FontSize="20"
+                HorizontalAlignment="Left"
+                Margin="-169,34,0,0"
+                Text ="{Binding _numberOfBalls}"
+                TextWrapping="Wrap"
+                VerticalAlignment="Top"
+                Width="120"
+                Visibility="Visible"/>
+            <Button
+                Background="#309bff"
+                Command="{Binding StartCommand}"
+                Content="Start"
+                FontSize="20"
+                Height="32"
+                HorizontalAlignment="Left"
+                Margin="-139,96,0,0"
+                VerticalAlignment="Top"
+                Width="60"
+                Visibility="Visible"/>
+            <Button
+                Background="#309bff"
+                Command="{Binding StopCommand}"
+                Content="Stop"
+                FontSize="20"
+                Height="32"
+                HorizontalAlignment="Left"
+                Margin="-139,178,0,0"
+                VerticalAlignment="Top"
+                Width="60"
+                Visibility="Visible"/>
+        </Grid>
+    </Viewbox>
+        
 </Window>

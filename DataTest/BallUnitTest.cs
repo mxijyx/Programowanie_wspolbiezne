@@ -27,7 +27,7 @@ namespace TP.ConcurrentProgramming.Data.Test
       Ball newInstance = new(initialPosition, new Vector(0.0, 0.0));
       IVector currentPosition = initialPosition;
       newInstance.NewPositionNotification += (sender, position) => currentPosition = position;
-      newInstance.Move(0); //TODO (board and ball dimentions
+      newInstance.Move(20, 400, 420, 8); //TODO (board and ball dimentions
       Assert.AreEqual<IVector>(initialPosition, currentPosition);
     }
      [TestMethod]
@@ -35,7 +35,7 @@ namespace TP.ConcurrentProgramming.Data.Test
         {
             Vector initialPosition = new(370, 10.0); //board and ball dimentions
             Ball newInstance = new(initialPosition, new Vector(10.0, 0.0));
-            newInstance.Move(0); //TODO (board and ball dimentions
+            newInstance.Move(20, 400, 420, 8); //TODO (board and ball dimentions
             Vector vector = new(-10.0, 0.0);
             Assert.AreEqual<IVector>(vector, newInstance.Velocity);
         }
@@ -44,7 +44,7 @@ namespace TP.ConcurrentProgramming.Data.Test
         {
             Vector initialPosition = new(10.0, 390); //board and ball dimentions
             Ball newInstance = new(initialPosition, new Vector(0.0, 10.0));
-            newInstance.Move(0); //TODO (board and ball dimentions
+            newInstance.Move(20, 400, 420, 8); //TODO (board and ball dimentions
             Vector vector = new(0.0, -10.0);
             Assert.AreEqual<IVector>(vector, newInstance.Velocity);
         }
