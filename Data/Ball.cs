@@ -39,7 +39,7 @@ namespace TP.ConcurrentProgramming.Data
       NewPositionNotification?.Invoke(this, Position);
     }
 
-    internal void Move(float diameter, float boardWidth, float boardHeight, float borderThickness) //TODO (board and ball dimentions)
+    internal void Move(float diameter, float boardWidth, float boardHeight, float borderThickness)
     {
             Position = new Vector(Position.x + Velocity.x, Position.y + Velocity.y);
 
