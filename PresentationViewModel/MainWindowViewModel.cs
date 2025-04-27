@@ -62,12 +62,14 @@ namespace TP.ConcurrentProgramming.Presentation.ViewModel
             Balls.Clear();
         }
         public ObservableCollection<ModelIBall> Balls { get; } = new ObservableCollection<ModelIBall>();
+        public double WindowWidth { get; set; }
+        public double WindowHeight { get; set; }
 
-    #endregion public API
+        #endregion public API
 
-    #region IDisposable
+        #region IDisposable
 
-    protected virtual void Dispose(bool disposing)
+        protected virtual void Dispose(bool disposing)
     {
       if (!Disposed)
       {
