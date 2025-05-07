@@ -80,10 +80,18 @@ namespace TP.ConcurrentProgramming.Data
     private Random RandomGenerator = new();
     private List<Ball> BallsList = [];
 
+    public override double BoardWidth { get; set; }
+    public override double BoardHeight { get; set; } //TODO: check if these fit the layer 
+
     private void Move(object? x)
     {
-      foreach (Ball item in BallsList)
-        item.Move(20, 400, 420, 8); 
+            foreach (Ball item in BallsList)
+                item.Move(
+                    diameter: Ball.Diameter,
+                    boardWidth: (float)BoardWidth,
+                    boardHeight: (float) BoardHeight,
+                     8
+            ); 
     }
 
     #endregion private

@@ -68,11 +68,14 @@ namespace TP.ConcurrentProgramming.Presentation.ViewModel.Test
       internal int Started = 0;
       internal int Subscribed = 0;
 
-      #endregion Test
+            public override double BoardWidth { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+            public override double BoardHeight { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
-      #region ModelAbstractApi
+            #endregion Test
 
-      public override void Dispose()
+            #region ModelAbstractApi
+
+            public override void Dispose()
       {
         Disposed++;
       }
@@ -151,7 +154,10 @@ namespace TP.ConcurrentProgramming.Presentation.ViewModel.Test
 
       private IObservable<EventPattern<BallChaneEventArgs>>? eventObservable = null;
 
-      private class ModelBall : ModelIBall
+            public override double BoardWidth { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+            public override double BoardHeight { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+
+            private class ModelBall : ModelIBall
       {
         public ModelBall(double top, double left)
         { }
@@ -162,7 +168,12 @@ namespace TP.ConcurrentProgramming.Presentation.ViewModel.Test
 
         public double Top => throw new NotImplementedException();
 
+        public double Bottom => throw new NotImplementedException();
+
         public double Left => throw new NotImplementedException();
+
+        public double Right => throw new NotImplementedException();
+
 
         #region INotifyPropertyChanged
 

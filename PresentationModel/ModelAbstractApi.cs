@@ -16,6 +16,9 @@ namespace TP.ConcurrentProgramming.Presentation.Model
   {
     double Top { get; }
     double Left { get; }
+    double Bottom { get; }
+    double Right { get; }
+
     double Diameter { get; }
   }
 
@@ -27,6 +30,8 @@ namespace TP.ConcurrentProgramming.Presentation.Model
     }
 
     public abstract void Start(int numberOfBalls);
+    public abstract double BoardWidth { get; set; }
+    public abstract double BoardHeight { get; set; }
 
     #region IObservable
 

@@ -19,10 +19,13 @@ namespace TP.ConcurrentProgramming.Presentation.Model
 {
   internal class ModelBall : IBall
   {
-    public ModelBall(double top, double left, LogicIBall underneathBall)
+    public ModelBall(double top, double bottom, double left, double right, LogicIBall underneathBall)
     {
       TopBackingField = top;
+      BottomBackingField = bottom;
       LeftBackingField = left;
+      RightBackingField = right;
+
       underneathBall.NewPositionNotification += NewPositionNotification;
     }
 
@@ -40,7 +43,19 @@ namespace TP.ConcurrentProgramming.Presentation.Model
       }
     }
 
-    public double Left
+        public double Bottom
+        {
+            get { return BottomBackingField; }
+            private set
+            {
+                if (BottomBackingField == value)
+                    return;
+                BottomBackingField = value;
+                RaisePropertyChanged();
+            }
+        }
+
+        public double Left
     {
       get { return LeftBackingField; }
       private set
@@ -48,6 +63,16 @@ namespace TP.ConcurrentProgramming.Presentation.Model
         if (LeftBackingField == value)
           return;
         LeftBackingField = value;
+        RaisePropertyChanged();
+      }
+    }   public double Right
+    {
+      get { return RightBackingField; }
+      private set
+      {
+        if (RightBackingField == value)
+          return;
+        RightBackingField = value;
         RaisePropertyChanged();
       }
     }
@@ -65,11 +90,13 @@ namespace TP.ConcurrentProgramming.Presentation.Model
     #region private
 
     private double TopBackingField;
+    private double BottomBackingField;
     private double LeftBackingField;
+    private double RightBackingField;
 
     private void NewPositionNotification(object sender, IPosition e)
     {
-      Top = e.y; Left = e.x;
+      Top = e.y; Left = e.x; Right = e.x; Bottom = e.y;
     }
 
     private void RaisePropertyChanged([CallerMemberName] string propertyName = "")
@@ -89,6 +116,14 @@ namespace TP.ConcurrentProgramming.Presentation.Model
     internal void SettTop(double x)
     { Top = x; }
 
-    #endregion testing instrumentation
-  }
+  [Conditional("DEBUG")]
+   internal void SettRight(double x)
+   { Right = x; }
+
+   [Conditional("DEBUG")]
+   internal void SettBottom(double x)
+   { Bottom = x; }
+
+        #endregion testing instrumentation
+    }
 }

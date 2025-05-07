@@ -18,7 +18,7 @@ namespace TP.ConcurrentProgramming.Presentation.Model.Test
     [TestMethod]
     public void ConstructorTestMethod()
     {
-      ModelBall ball = new ModelBall(0.0, 0.0, new BusinessLogicIBallFixture());
+      ModelBall ball = new ModelBall(0.0, 0.0, 0.0, 0.0, new BusinessLogicIBallFixture());
       Assert.AreEqual<double>(0.0, ball.Top);
       Assert.AreEqual<double>(0.0, ball.Top);
     }
@@ -27,7 +27,7 @@ namespace TP.ConcurrentProgramming.Presentation.Model.Test
     public void PositionChangeNotificationTestMethod()
     {
       int notificationCounter = 0;
-      ModelBall ball = new ModelBall(0, 0.0, new BusinessLogicIBallFixture());
+      ModelBall ball = new ModelBall(0, 0.0, 0.0, 0.0, new BusinessLogicIBallFixture());
       ball.PropertyChanged += (sender, args) => notificationCounter++;
       Assert.AreEqual(0, notificationCounter);
       ball.SetLeft(1.0);
@@ -38,6 +38,7 @@ namespace TP.ConcurrentProgramming.Presentation.Model.Test
       Assert.AreEqual(2, notificationCounter);
       Assert.AreEqual<double>(1.0, ball.Left);
       Assert.AreEqual<double>(1.0, ball.Top);
+    // TODO: Test bottom and right
     }
 
     #region testing instrumentation

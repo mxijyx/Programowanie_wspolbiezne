@@ -35,6 +35,28 @@ namespace TP.ConcurrentProgramming.Presentation.ViewModel
           RaisePropertyChanged();
         }
     }
+        private double windowWidth;
+        public double WindowWidth
+        {
+            get => windowWidth;
+            set
+            {
+                windowWidth = value;
+                RaisePropertyChanged();
+                ModelLayer.BoardWidth = value;
+            }
+        }
+        private double windowHeight;
+        public double WindowHeight
+        {
+            get => windowHeight;
+            set
+            {
+                windowHeight = value;
+                RaisePropertyChanged();
+                ModelLayer.BoardHeight = value;
+            }
+        }
     internal MainWindowViewModel(ModelAbstractApi modelLayerAPI)
     {
       ModelLayer = modelLayerAPI == null ? ModelAbstractApi.CreateModel() : modelLayerAPI;
@@ -62,8 +84,6 @@ namespace TP.ConcurrentProgramming.Presentation.ViewModel
             Balls.Clear();
         }
         public ObservableCollection<ModelIBall> Balls { get; } = new ObservableCollection<ModelIBall>();
-        public double WindowWidth { get; set; }
-        public double WindowHeight { get; set; }
 
         #endregion public API
 

@@ -11,6 +11,7 @@ using System;
 using System.Diagnostics;
 using System.Reactive;
 using System.Reactive.Linq;
+using TP.ConcurrentProgramming.Data;
 using UnderneathLayerAPI = TP.ConcurrentProgramming.BusinessLogic.BusinessLogicAbstractAPI;
 
 namespace TP.ConcurrentProgramming.Presentation.Model
@@ -62,10 +63,20 @@ namespace TP.ConcurrentProgramming.Presentation.Model
     private bool Disposed = false;
     private readonly IObservable<EventPattern<BallChaneEventArgs>> eventObservable = null;
     private readonly UnderneathLayerAPI layerBellow = null;
+    private readonly DataAbstractAPI dataLayer = DataAbstractAPI.GetDataLayer();
 
-    private void StartHandler(BusinessLogic.IPosition position, BusinessLogic.IBall ball)
+
+        public override double BoardWidth { 
+            get => dataLayer.BoardWidth; 
+            set => dataLayer.BoardWidth = value; }
+        public override double BoardHeight {
+            get => dataLayer.BoardHeight;
+            set => dataLayer.BoardHeight = value;
+        }
+
+        private void StartHandler(BusinessLogic.IPosition position, BusinessLogic.IBall ball)
     {
-      ModelBall newBall = new ModelBall(position.x, position.y, ball) { Diameter = 20.0 };
+      ModelBall newBall = new ModelBall(position.x, position.x, position.y, position.y, ball) { Diameter = 20.0 };
       BallChanged.Invoke(this, new BallChaneEventArgs() { Ball = newBall });
     }
 

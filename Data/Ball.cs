@@ -27,28 +27,29 @@ namespace TP.ConcurrentProgramming.Data
     public event EventHandler<IVector>? NewPositionNotification;
 
     public IVector Velocity { get; set; }
+        public static float Diameter { get; internal set; }
 
-    #endregion IBall
+        #endregion IBall
 
-    #region private
+        #region private
 
-    private Vector Position;
+        private Vector Position;
 
     private void RaiseNewPositionChangeNotification()
     {
       NewPositionNotification?.Invoke(this, Position);
     }
 
-    internal void Move(float diameter, float boardWidth, float boardHeight, float borderThickness) //TODO change to dynamically set values
+    internal void Move(float diameter, float boardWidth, float boardHeight, float borderThickness) 
     {
             Position = new Vector(Position.x + Velocity.x, Position.y + Velocity.y);
 
-            if (Position.x <= 0 || Position.x >= boardWidth - diameter - borderThickness)  //Szerokość stołu = 400 - 20 (Średnica) - 8 (Granica)
+            if (Position.x <= 0 || Position.x >= boardWidth - diameter - borderThickness)  
             {
                 Velocity = new Vector(-Velocity.x, Velocity.y);
             }
 
-            if (Position.y <= 0 || Position.y >= boardHeight - diameter - borderThickness) //Wysokość stołu = 420 - 20 (Średnica) - 8 (Granica)
+            if (Position.y <= 0 || Position.y >= boardHeight - diameter - borderThickness) 
             {
                 Velocity = new Vector(Velocity.x, -Velocity.y);
             }
