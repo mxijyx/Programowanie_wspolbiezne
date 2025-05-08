@@ -59,8 +59,15 @@ namespace TP.ConcurrentProgramming.Data
 
   public interface IBall
   {
-    event EventHandler<IVector> NewPositionNotification;
+        // add instead of velocity setter according to the seminar SetVelocity(double velocity); -> chyba zrobione 
+        // = tu nie można nic usunac ani dostawić 
+        event EventHandler<IVector> NewVelocityNotification;
+        void SetVelocity(double x, double y); // spójność danych! 
+        //wątki tworzymy według threadcreation.cs
+        //taski nie są wymagane 
+        //średnicy masy kuli też nie trzeba brać 
+        //jeśli stąd coś wyeksportujemy to musimy to uzasadnić - dlatego tu już lepiej NIC NIE ZMIENIAĆ -> ROZWIĄZAUJEMY PROBLEM PRZEZ DANE IMMUTABLE NP. REKORD 
 
-    IVector Velocity { get; set; }
+        IVector Velocity { get; }
   }
 }
