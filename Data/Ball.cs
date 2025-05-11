@@ -25,16 +25,16 @@ namespace TP.ConcurrentProgramming.Data
     #region IBall
 
     public event EventHandler<IVector>? NewPositionNotification;
-        public event EventHandler<IVector> NewVelocityNotification;
+    public event EventHandler<IVector>? NewVelocityNotification;
 
-        public IVector Velocity { get; set; }
-        public static float Diameter { get; internal set; }
+    public IVector Velocity { get; private set; }
+    public static float Diameter { get; internal set; }
 
-        #endregion IBall
+    #endregion IBall
 
-        #region private
+    #region private
 
-        private Vector Position;
+    private Vector Position;
 
     private void RaiseNewPositionChangeNotification()
     {
@@ -42,25 +42,26 @@ namespace TP.ConcurrentProgramming.Data
     }
 
     internal void Move(float diameter, float boardWidth, float boardHeight, float borderThickness) //private?
-    {
-            Position = new Vector(Position.x + Velocity.x, Position.y + Velocity.y);
+    { 
+        Position = new Vector(Position.x + Velocity.x, Position.y + Velocity.y);
 
-            if (Position.x <= 0 || Position.x >= boardWidth - diameter - borderThickness)  
-            {
-                Velocity = new Vector(-Velocity.x, Velocity.y);
-            }
+        if (Position.x <= 0 || Position.x >= boardWidth - diameter - borderThickness)  
+        {
+            Velocity = new Vector(-Velocity.x, Velocity.y);
+        }
 
-            if (Position.y <= 0 || Position.y >= boardHeight - diameter - borderThickness) 
-            {
-                Velocity = new Vector(Velocity.x, -Velocity.y);
-            }
-            RaiseNewPositionChangeNotification();
+        if (Position.y <= 0 || Position.y >= boardHeight - diameter - borderThickness) 
+        {
+            Velocity = new Vector(Velocity.x, -Velocity.y);
+        }
+        RaiseNewPositionChangeNotification();
     }
 
-        public void SetVelocity(double x, double y)
-        {
-            throw new NotImplementedException();
-        }
+    public void SetVelocity(double x, double y)
+    { 
+        Velocity = new Vector(x, y);
+        NewVelocityNotification?.Invoke(this, Velocity);
+    }
 
         #endregion private
     }

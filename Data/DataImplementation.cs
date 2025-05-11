@@ -16,16 +16,18 @@ namespace TP.ConcurrentProgramming.Data
   internal class DataImplementation : DataAbstractAPI
   {
     #region ctor
-
+    public double MaxX { get; private set; }
+    public double MaxY { get; private set; }
     public DataImplementation()
     {
       MoveTimer = new Timer(Move, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(16)); //krok w terminologii programowania - przechodzenie z instrukcji do instrukcji 
                                                                                        // timer wywołuje Move sekwencyjnie, a Move też jest sekwencyjne -> czyli i timer i funkcja Move jest nieporzebna?
                                                                                        // cykl odświeżania musi zależeć od prędkość kuli - czas odświeżania musi być mniejszy dla szybszych kul-> to musi być przy getterze velocity -> dlatgeo timer jest bez sensu
                                                                                        // data musi pozostać abstrakcyjne 
-
-                                                                                       
-        }
+                                                                                       //TODO: do usunięcia
+      MaxX = 400;
+      MaxY = 420;
+    }
 
         #endregion ctor
 
@@ -47,6 +49,15 @@ namespace TP.ConcurrentProgramming.Data
         BallsList.Add(newBall);
       }
     }
+
+    public override void SetCanvasSize(double width, double height)
+    {
+      if (Disposed)
+        throw new ObjectDisposedException(nameof(DataImplementation));
+       MaxX = width - (Ball.Diameter);
+       MaxY = height - (Ball.Diameter);
+    }
+
 
     #endregion DataAbstractAPI
 

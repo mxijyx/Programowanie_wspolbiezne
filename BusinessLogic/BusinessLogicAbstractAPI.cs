@@ -27,7 +27,7 @@ namespace TP.ConcurrentProgramming.BusinessLogic
 
     public abstract void Start(int numberOfBalls, Action<IPosition, IBall> upperLayerHandler);
 
-    public abstract SetCanvasSize(double width, double height);
+    public abstract void SetCanvasSize(double width, double height);
 
         #region IDisposable
 

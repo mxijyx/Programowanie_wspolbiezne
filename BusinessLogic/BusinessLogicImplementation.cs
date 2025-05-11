@@ -57,7 +57,7 @@ namespace TP.ConcurrentProgramming.BusinessLogic
         #endregion private
 
         #region SetCanvasSize
-        public override SetCanvasSize(double width, double height)
+        public override void SetCanvasSize(double width, double height)
         {
             if (Disposed)
                 throw new ObjectDisposedException(nameof(BusinessLogicImplementation));
