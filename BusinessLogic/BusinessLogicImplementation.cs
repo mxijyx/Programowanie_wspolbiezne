@@ -54,11 +54,20 @@ namespace TP.ConcurrentProgramming.BusinessLogic
 
     private readonly UnderneathLayerAPI layerBellow;
 
-    #endregion private
+        #endregion private
 
-    #region TestingInfrastructure
+        #region SetCanvasSize
+        public override SetCanvasSize(double width, double height)
+        {
+            if (Disposed)
+                throw new ObjectDisposedException(nameof(BusinessLogicImplementation));
+            layerBellow.SetCanvasSize(width, height);
+        }
+        #endregion SetCanvasSize
 
-    [Conditional("DEBUG")]
+        #region TestingInfrastructure
+
+        [Conditional("DEBUG")]
     internal void CheckObjectDisposed(Action<bool> returnInstanceDisposed)
     {
       returnInstanceDisposed(Disposed);

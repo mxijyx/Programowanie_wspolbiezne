@@ -25,8 +25,9 @@ namespace TP.ConcurrentProgramming.Data
     #region IBall
 
     public event EventHandler<IVector>? NewPositionNotification;
+        public event EventHandler<IVector> NewVelocityNotification;
 
-    public IVector Velocity { get; set; }
+        public IVector Velocity { get; set; }
         public static float Diameter { get; internal set; }
 
         #endregion IBall
@@ -40,7 +41,7 @@ namespace TP.ConcurrentProgramming.Data
       NewPositionNotification?.Invoke(this, Position);
     }
 
-    private void Move(float diameter, float boardWidth, float boardHeight, float borderThickness) 
+    internal void Move(float diameter, float boardWidth, float boardHeight, float borderThickness) //private?
     {
             Position = new Vector(Position.x + Velocity.x, Position.y + Velocity.y);
 
@@ -56,6 +57,11 @@ namespace TP.ConcurrentProgramming.Data
             RaiseNewPositionChangeNotification();
     }
 
-    #endregion private
-  }
+        public void SetVelocity(double x, double y)
+        {
+            throw new NotImplementedException();
+        }
+
+        #endregion private
+    }
 }
