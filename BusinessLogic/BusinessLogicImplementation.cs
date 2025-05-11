@@ -8,7 +8,10 @@
 //
 //_____________________________________________________________________________________________________________________________________
 
+using System;
 using System.Diagnostics;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnderneathLayerAPI = TP.ConcurrentProgramming.Data.DataAbstractAPI;
 
 namespace TP.ConcurrentProgramming.BusinessLogic
@@ -29,6 +32,18 @@ namespace TP.ConcurrentProgramming.BusinessLogic
 
     #region BusinessLogicAbstractAPI
 
+    public override double TableWidth
+    {
+      get => layerBellow.BoardWidth;
+      set => layerBellow.BoardWidth = value;
+    }
+
+    public override double TableHeight
+    {
+      get => layerBellow.BoardHeight;
+      set => layerBellow.BoardHeight = value;
+    }
+
     public override void Dispose()
     {
       if (Disposed)
@@ -43,7 +58,16 @@ namespace TP.ConcurrentProgramming.BusinessLogic
         throw new ObjectDisposedException(nameof(BusinessLogicImplementation));
       if (upperLayerHandler == null)
         throw new ArgumentNullException(nameof(upperLayerHandler));
-      layerBellow.Start(numberOfBalls, (startingPosition, databall) => upperLayerHandler(new Position(startingPosition.x, startingPosition.x), new Ball(databall)));
+      layerBellow.Start(numberOfBalls, (startingPosition, databall) =>
+      {
+        var pos = new Position(startingPosition.x, startingPosition.y); //mapowanie StartingPosition do IPosition
+        var velocity = layerBellow.CreateVector(databall.Velocity.x, databall.Velocity.y); //pobranie prędkości z warstwy niższej
+        var newBall = layerBellow.CreateBall(startingPosition, velocity); //utworzenie instancji IBall
+        var businessBall = new Ball(newBall); //utworzenie obiektu AsyncBall na poziomie warstwy logiki
+        
+        upperLayerHandler(pos, businessBall); //przekazanie do wyższego poziomu
+        //TODO: śledzenie w drzewie
+      });
     }
 
     #endregion BusinessLogicAbstractAPI
@@ -53,7 +77,6 @@ namespace TP.ConcurrentProgramming.BusinessLogic
     private bool Disposed = false;
 
     private readonly UnderneathLayerAPI layerBellow;
-
     #endregion private
 
     #region TestingInfrastructure
@@ -66,4 +89,7 @@ namespace TP.ConcurrentProgramming.BusinessLogic
 
     #endregion TestingInfrastructure
   }
+  
+  
+
 }

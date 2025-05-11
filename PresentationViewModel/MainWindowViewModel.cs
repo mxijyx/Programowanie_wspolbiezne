@@ -41,7 +41,7 @@ namespace TP.ConcurrentProgramming.Presentation.ViewModel
             get => windowWidth;
             set
             {
-                windowWidth = value;
+                windowWidth = value - 271;
                 RaisePropertyChanged();
                 ModelLayer.BoardWidth = value;
             }
@@ -52,7 +52,7 @@ namespace TP.ConcurrentProgramming.Presentation.ViewModel
             get => windowHeight;
             set
             {
-                windowHeight = value;
+                windowHeight = value - 60;
                 RaisePropertyChanged();
                 ModelLayer.BoardHeight = value;
             }

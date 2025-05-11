@@ -14,7 +14,7 @@ namespace TP.ConcurrentProgramming.Data
   {
     #region ctor
 
-    internal Ball(Vector initialPosition, Vector initialVelocity)
+    internal Ball(IVector initialPosition, IVector initialVelocity)
     {
       Position = initialPosition;
       Velocity = initialVelocity;
@@ -25,35 +25,30 @@ namespace TP.ConcurrentProgramming.Data
     #region IBall
 
     public event EventHandler<IVector>? NewPositionNotification;
+    public event EventHandler<IVector>? NewVelocityNotification;
 
-    public IVector Velocity { get; set; }
-        public static float Diameter { get; internal set; }
+    public IVector Velocity { get; private set; }
+    public void SetVelocity(double x, double y)
+    {
+      Velocity = new Vector(x, y);
+      NewVelocityNotification?.Invoke(this, Velocity);
+    }
+    public IVector Position { get; private set; }  
+    public static double Diameter { get; internal set; }
+    public static double Mass { get; internal set; }
+    
+    #endregion IBall
 
-        #endregion IBall
-
-        #region private
-
-        private Vector Position;
-
+    #region private
     private void RaiseNewPositionChangeNotification()
     {
       NewPositionNotification?.Invoke(this, Position);
     }
 
-    private void Move(float diameter, float boardWidth, float boardHeight, float borderThickness) 
+    internal void Move(double diameter, double boardWidth, double boardHeight) 
     {
-            Position = new Vector(Position.x + Velocity.x, Position.y + Velocity.y);
-
-            if (Position.x <= 0 || Position.x >= boardWidth - diameter - borderThickness)  
-            {
-                Velocity = new Vector(-Velocity.x, Velocity.y);
-            }
-
-            if (Position.y <= 0 || Position.y >= boardHeight - diameter - borderThickness) 
-            {
-                Velocity = new Vector(Velocity.x, -Velocity.y);
-            }
-            RaiseNewPositionChangeNotification();
+        Position = new Vector(Position.x + Velocity.x, Position.y + Velocity.y);
+        RaiseNewPositionChangeNotification();
     }
 
     #endregion private

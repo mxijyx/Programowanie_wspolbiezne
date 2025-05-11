@@ -10,6 +10,9 @@
 
 using System;
 using System.Diagnostics;
+using System.Collections.Concurrent;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace TP.ConcurrentProgramming.Data
 {
@@ -19,32 +22,44 @@ namespace TP.ConcurrentProgramming.Data
 
     public DataImplementation()
     {
-      MoveTimer = new Timer(Move, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(16)); //krok w terminologii programowania - przechodzenie z instrukcji do instrukcji 
-                                                                                       // timer wywołuje Move sekwencyjnie, a Move też jest sekwencyjne -> czyli i timer i funkcja Move jest nieporzebna?
-                                                                                       // cykl odświeżania musi zależeć od prędkość kuli - czas odświeżania musi być mniejszy dla szybszych kul-> to musi być przy getterze velocity -> dlatgeo timer jest bez sensu
-                                                                                       // data musi pozostać abstrakcyjne 
-
-                                                                                       
+      movingTask = Task.Run(async () =>
+      {
+        while (!cts.IsCancellationRequested)
+        {
+          double w = BoardWidth;
+          double h = BoardHeight;
+          double d = Ball.Diameter;
+          foreach (var ball in BallsList)
+          {
+            ball.Move(d,w,h);
+          }
+          await Task.Delay(16, cts.Token).ConfigureAwait(false);
         }
+      }, cts.Token); //krok w terminologii programowania - przechodzenie z instrukcji do instrukcji 
+                     // timer wywołuje Move sekwencyjnie, a Move też jest sekwencyjne -> czyli i timer i funkcja Move jest nieporzebna?
+                     // cykl odświeżania musi zależeć od prędkość kuli - czas odświeżania musi być mniejszy dla szybszych kul-> to musi być przy getterze velocity -> dlatgeo timer jest bez sensu
+                     // data musi pozostać abstrakcyjne 
 
-        #endregion ctor
+    }
 
-        #region DataAbstractAPI
+    #endregion ctor
 
-        public override void Start(int numberOfBalls, Action<IVector, IBall> upperLayerHandler)
+    #region DataAbstractAPI
+
+    public override void Start(int numberOfBalls, Action<IVector, IBall> upperLayerHandler)
     {
-      if (Disposed)
-        throw new ObjectDisposedException(nameof(DataImplementation));
-      if (upperLayerHandler == null)
-        throw new ArgumentNullException(nameof(upperLayerHandler));
-      Random random = new Random();
+      if (numberOfBalls <= 0)
+      {
+        throw new ArgumentOutOfRangeException(nameof(numberOfBalls));
+      }
+      var rand = new Random();
       for (int i = 0; i < numberOfBalls; i++)
       {
-        Vector startingPosition = new(random.Next(100, 400 - 100), random.Next(100, 400 - 100));
-                Vector startingVelocity = new((RandomGenerator.NextDouble() - 0.5) * 10, (RandomGenerator.NextDouble() - 0.5) * 10);
-                Ball newBall = new(startingPosition, startingVelocity);
-        upperLayerHandler(startingPosition, newBall);
-        BallsList.Add(newBall);
+        var pos = new Vector(rand.NextDouble() * BoardWidth, rand.NextDouble() * BoardHeight);
+        var vel = new Vector((rand.NextDouble() - 0.5) * 200 / 60, (rand.NextDouble() - 0.5) * 200 / 60);
+        var ball = new Ball(pos, vel);
+        BallsList.Add(ball);
+        upperLayerHandler(pos, ball);
       }
     }
 
@@ -58,14 +73,28 @@ namespace TP.ConcurrentProgramming.Data
       {
         if (disposing)
         {
-          MoveTimer.Dispose();
-          BallsList.Clear();
+          cts.Cancel();
+          try
+          {
+            movingTask.Wait();
+          }
+          catch (AggregateException ae)
+          {
+            ae.Handle(e => e is OperationCanceledException);
+          }
+          finally
+          {
+            BallsList.Clear();
+            cts.Dispose();
+          }
         }
         Disposed = true;
       }
       else
         throw new ObjectDisposedException(nameof(DataImplementation));
     }
+
+    
 
     public override void Dispose()
     {
@@ -76,17 +105,20 @@ namespace TP.ConcurrentProgramming.Data
 
     #endregion IDisposable
 
+    public override IBall CreateBall(IVector position, IVector velocity) => new Ball(position, velocity); //TODO: to nie powinno być w Data - to jest w BusinessLogic - to jest tylko reprezentacja kuli, a nie kula jako taka
+    public override IVector CreateVector(double x, double y) => new Vector(x, y); //TODO: to nie powinno być w Data - to jest w BusinessLogic - to jest tylko reprezentacja kuli, a nie kula jako taka
+    
     #region private
 
-    //private bool disposedValue;
     private bool Disposed = false;
-
-    private readonly Timer MoveTimer;
     private Random RandomGenerator = new();
-    private List<Ball> BallsList = [];
+    private readonly ConcurrentBag<Ball> BallsList = new();
+    private readonly CancellationTokenSource cts = new();
+    private readonly Task movingTask;
 
-    public override double BoardWidth { get; set; }
-    public override double BoardHeight { get; set; } //TODO: check if these fit the layer 
+
+    public override double BoardWidth { get; set; } = 800;
+    public override double BoardHeight { get; set; } = 600; //TODO: check if these fit the layer 
 
     private void Move(object? x) //to sekwencyjne, więć jest niepotrzebne??? - to element kuli, kula nie może wiedzieć o istniniu innych kuli, więc do przeniesienia!!!
                                  // balls representations are independent and self-contained - tu nie może być nic o innych kulach
@@ -99,9 +131,8 @@ namespace TP.ConcurrentProgramming.Data
             foreach (Ball item in BallsList)
                 item.Move(
                     diameter: Ball.Diameter,
-                    boardWidth: (float)BoardWidth,
-                    boardHeight: (float) BoardHeight,
-                     8
+                    boardWidth: BoardWidth,
+                    boardHeight: BoardHeight
             ); 
     }
 
