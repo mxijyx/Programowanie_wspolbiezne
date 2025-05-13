@@ -20,6 +20,7 @@ namespace TP.ConcurrentProgramming.BusinessLogic
     #region IBall
 
     public event EventHandler<IPosition>? NewPositionNotification;
+    public event EventHandler<double>? DiameterChanged;
 
     #endregion IBall
 

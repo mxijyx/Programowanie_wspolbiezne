@@ -43,7 +43,13 @@ namespace TP.ConcurrentProgramming.BusinessLogic
         throw new ObjectDisposedException(nameof(BusinessLogicImplementation));
       if (upperLayerHandler == null)
         throw new ArgumentNullException(nameof(upperLayerHandler));
-      layerBellow.Start(numberOfBalls, (startingPosition, databall) => upperLayerHandler(new Position(startingPosition.x, startingPosition.x), new Ball(databall)));
+
+      layerBellow.Start(numberOfBalls, (startingPosition, databall) =>
+        upperLayerHandler(
+          new Position(startingPosition.x, startingPosition.y), 
+          new Ball(databall)
+        )
+      );
     }
 
     #endregion BusinessLogicAbstractAPI
@@ -54,11 +60,20 @@ namespace TP.ConcurrentProgramming.BusinessLogic
 
     private readonly UnderneathLayerAPI layerBellow;
 
-    #endregion private
+        #endregion private
 
-    #region TestingInfrastructure
+        #region SetCanvasSize
+        public override void SetCanvasSize(double width, double height)
+        {
+            if (Disposed)
+                throw new ObjectDisposedException(nameof(BusinessLogicImplementation));
+            layerBellow.SetCanvasSize(width, height);
+        }
+        #endregion SetCanvasSize
 
-    [Conditional("DEBUG")]
+        #region TestingInfrastructure
+
+        [Conditional("DEBUG")]
     internal void CheckObjectDisposed(Action<bool> returnInstanceDisposed)
     {
       returnInstanceDisposed(Disposed);

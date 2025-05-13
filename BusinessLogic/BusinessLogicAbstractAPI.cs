@@ -27,9 +27,11 @@ namespace TP.ConcurrentProgramming.BusinessLogic
 
     public abstract void Start(int numberOfBalls, Action<IPosition, IBall> upperLayerHandler);
 
-    #region IDisposable
+    public abstract void SetCanvasSize(double width, double height);
 
-    public abstract void Dispose();
+        #region IDisposable
+
+        public abstract void Dispose();
 
     #endregion IDisposable
 
@@ -61,5 +63,6 @@ namespace TP.ConcurrentProgramming.BusinessLogic
   public interface IBall 
   {
     event EventHandler<IPosition> NewPositionNotification;
+    event EventHandler<double> DiameterChanged;
   }
 }

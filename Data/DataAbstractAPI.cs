@@ -27,6 +27,8 @@ namespace TP.ConcurrentProgramming.Data
         public abstract double BoardWidth { get; set; }
         public abstract double BoardHeight { get; set; }
 
+        public abstract void SetCanvasSize(double width, double height);
+
     #endregion public API
 
     #region IDisposable
@@ -62,7 +64,8 @@ namespace TP.ConcurrentProgramming.Data
         // add instead of velocity setter according to the seminar SetVelocity(double velocity); -> chyba zrobione 
         // = tu nie można nic usunac ani dostawić 
         event EventHandler<IVector> NewVelocityNotification;
-        void SetVelocity(double x, double y); // spójność danych! 
+        event EventHandler<IVector> NewPositionNotification;
+    void SetVelocity(double x, double y); // spójność danych! 
         //wątki tworzymy według threadcreation.cs
         //taski nie są wymagane 
         //średnicy masy kuli też nie trzeba brać 

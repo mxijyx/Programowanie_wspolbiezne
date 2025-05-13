@@ -24,7 +24,7 @@ namespace TP.ConcurrentProgramming.PresentationView
       InitializeComponent();
       MainWindowViewModel viewModel = (MainWindowViewModel)DataContext;
       double screenWidth = SystemParameters.PrimaryScreenWidth;
-      double screenHeight = SystemParameters.PrimaryScreenHeight;
+      double screenHeight = SystemParameters.PrimaryScreenHeight -20;
             this.Width = screenWidth;
             this.Height = screenHeight;
             viewModel.WindowWidth = this.Width;
@@ -34,6 +34,8 @@ namespace TP.ConcurrentProgramming.PresentationView
             {
                 viewModel.WindowWidth = this.Width;
                 viewModel.WindowHeight = this.Height;
+
+                viewModel.UpdateCanvasSize(Width, Height);
             };
 
             viewModel.Start();

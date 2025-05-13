@@ -25,37 +25,75 @@ namespace TP.ConcurrentProgramming.Data
     #region IBall
 
     public event EventHandler<IVector>? NewPositionNotification;
+    public event EventHandler<IVector>? NewVelocityNotification;
 
-    public IVector Velocity { get; set; }
-        public static float Diameter { get; internal set; }
+    public IVector Velocity { get; private set; }
+    public static double Diameter { get; internal set; }
 
-        #endregion IBall
+    #endregion IBall
 
-        #region private
+    #region private
 
-        private Vector Position;
+    private Vector Position;
 
     private void RaiseNewPositionChangeNotification()
     {
       NewPositionNotification?.Invoke(this, Position);
     }
 
-    private void Move(float diameter, float boardWidth, float boardHeight, float borderThickness) 
+    internal void Move(double diameter, double boardWidth, double boardHeight)
     {
-            Position = new Vector(Position.x + Velocity.x, Position.y + Velocity.y);
+        double newX = Position.x + Velocity.x;
+        double newY = Position.y + Velocity.y;
 
-            if (Position.x <= 0 || Position.x >= boardWidth - diameter - borderThickness)  
-            {
-                Velocity = new Vector(-Velocity.x, Velocity.y);
-            }
+        if (newX <= 0)
+        {
+            newX = 0;
+            Velocity = new Vector(Math.Abs(Velocity.x), Velocity.y);
+        }
+        else if (newX + diameter >= boardWidth)
+        {
+            newX = boardWidth - diameter;
+            Velocity = new Vector(-Math.Abs(Velocity.x), Velocity.y);
+        }
 
-            if (Position.y <= 0 || Position.y >= boardHeight - diameter - borderThickness) 
-            {
-                Velocity = new Vector(Velocity.x, -Velocity.y);
-            }
-            RaiseNewPositionChangeNotification();
+        if (newY <= 0)
+        {
+            newY = 0;
+            Velocity = new Vector(Velocity.x, Math.Abs(Velocity.y));
+        }
+        else if (newY + diameter >= boardHeight)
+        {
+            newY = boardHeight - diameter;
+            Velocity = new Vector(Velocity.x, -Math.Abs(Velocity.y));
+        }
+
+        Position = new Vector(newX, newY);
+        RaiseNewPositionChangeNotification();
     }
 
-    #endregion private
-  }
+        public void SetVelocity(double x, double y)
+    { 
+        Velocity = new Vector(x, y);
+        NewVelocityNotification?.Invoke(this, Velocity);
+    }
+
+        #endregion private
+        #region Skalowanie
+        public static event EventHandler<double>? DiameterChanged;
+
+        internal void ScalePosition(double scaleX, double scaleY)
+        {
+            Position = new Vector(Position.x * scaleX, Position.y * scaleY);
+            RaiseNewPositionChangeNotification();
+        }
+
+        internal static void ScaleDiameter(double scale)
+        {
+            double newDiameter = Diameter * scale;
+            Diameter = newDiameter;
+            DiameterChanged?.Invoke(null, newDiameter);
+        }
+        #endregion
+    }
 }

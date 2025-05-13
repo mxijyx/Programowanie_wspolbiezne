@@ -56,11 +56,18 @@ namespace TP.ConcurrentProgramming.Presentation.Model
 
     public event EventHandler<BallChaneEventArgs> BallChanged;
 
-    #endregion API
+        #endregion API
+        #region SetCanvasSize
+        public override void SetCanvasSize(double width, double height)
+        {
+            if (Disposed)
+                throw new ObjectDisposedException(nameof(ModelImplementation));
+            layerBellow.SetCanvasSize(width, height);
+        }
+        #endregion SetCanvasSize
+        #region private
 
-    #region private
-
-    private bool Disposed = false;
+        private bool Disposed = false;
     private readonly IObservable<EventPattern<BallChaneEventArgs>> eventObservable = null;
     private readonly UnderneathLayerAPI layerBellow = null;
     private readonly DataAbstractAPI dataLayer = DataAbstractAPI.GetDataLayer();
@@ -76,7 +83,7 @@ namespace TP.ConcurrentProgramming.Presentation.Model
 
         private void StartHandler(BusinessLogic.IPosition position, BusinessLogic.IBall ball)
     {
-      ModelBall newBall = new ModelBall(position.x, position.x, position.y, position.y, ball) { Diameter = 20.0 };
+      ModelBall newBall = new ModelBall(position.x, position.y, ball) { Diameter = 20.0 };
       BallChanged.Invoke(this, new BallChaneEventArgs() { Ball = newBall });
     }
 
