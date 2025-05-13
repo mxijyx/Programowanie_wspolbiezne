@@ -62,7 +62,12 @@ namespace TP.ConcurrentProgramming.Presentation.ViewModel
       ModelLayer = modelLayerAPI == null ? ModelAbstractApi.CreateModel() : modelLayerAPI;
       Observer = ModelLayer.Subscribe<ModelIBall>(x => Balls.Add(x));
       StartCommand = new RelayCommand(Start);
-      StopCommand = new RelayCommand (Stop);
+      StopCommand = new RelayCommand(Stop);
+
+      WindowWidth = 800;
+      WindowHeight = 600;
+
+      ModelLayer.SetCanvasSize(WindowWidth, WindowHeight);
     }
 
         #endregion ctor
@@ -85,11 +90,26 @@ namespace TP.ConcurrentProgramming.Presentation.ViewModel
         }
         public ObservableCollection<ModelIBall> Balls { get; } = new ObservableCollection<ModelIBall>();
 
-        #endregion public API
+        public void UpdateCanvasSize(double windowWidth, double windowHeight)
+        {
+          double marginLeft = 211;
+          double marginRight = 60;
+          double marginTop = 10;
+          double marginBottom = 10;
 
-        #region IDisposable
+          double borderThickness = 4;
 
-        protected virtual void Dispose(bool disposing)
+          double contentWidth = windowWidth - marginLeft - marginRight - (2 * borderThickness);
+          double contentHeight = windowHeight - marginTop - marginBottom - (2 * borderThickness);
+
+          ModelLayer.SetCanvasSize(contentWidth, contentHeight);
+        }
+
+#endregion public API
+
+    #region IDisposable
+
+    protected virtual void Dispose(bool disposing)
     {
       if (!Disposed)
       {

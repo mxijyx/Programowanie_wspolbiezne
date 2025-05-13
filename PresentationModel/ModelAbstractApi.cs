@@ -16,7 +16,6 @@ namespace TP.ConcurrentProgramming.Presentation.Model
   {
     double Top { get; }
     double Left { get; }
-
     double Diameter { get; }
   }
 
@@ -33,7 +32,7 @@ namespace TP.ConcurrentProgramming.Presentation.Model
 
     #region IObservable
 
-    public abstract void SetCanvasSize(double height, double width);
+    public abstract void SetCanvasSize(double width, double height);
 
     public abstract IDisposable Subscribe(IObserver<IBall> observer);
 

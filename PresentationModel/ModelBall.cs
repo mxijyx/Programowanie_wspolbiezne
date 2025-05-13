@@ -23,15 +23,17 @@ namespace TP.ConcurrentProgramming.Presentation.Model
     {
       TopBackingField = top;
       LeftBackingField = left;
+      _diameter = 20.0;
 
       underneathBall.NewPositionNotification += NewPositionNotification;
+      underneathBall.DiameterChanged += (sender, newDiameter) => Diameter = newDiameter;
     }
 
     #region IBall
 
     public double Top
     {
-      get { return TopBackingField; }
+      get => TopBackingField;
       private set
       {
         if (TopBackingField == value)
@@ -41,10 +43,9 @@ namespace TP.ConcurrentProgramming.Presentation.Model
       }
     }
 
-
-        public double Left
+    public double Left
     {
-      get { return LeftBackingField; }
+      get => LeftBackingField;
       private set
       {
         if (LeftBackingField == value)
@@ -52,15 +53,21 @@ namespace TP.ConcurrentProgramming.Presentation.Model
         LeftBackingField = value;
         RaisePropertyChanged();
       }
-    } 
+    }
 
-    public double Diameter { get; init; } = 0;
+    public double Diameter
+    {
+      get => _diameter;
+      set
+      {
+        if (_diameter == value)
+          return;
+        _diameter = value;
+        RaisePropertyChanged();
+      }
+    }
 
-    #region INotifyPropertyChanged
-
-    public event PropertyChangedEventHandler PropertyChanged;
-
-    #endregion INotifyPropertyChanged
+    public event PropertyChangedEventHandler? PropertyChanged;
 
     #endregion IBall
 
@@ -68,10 +75,12 @@ namespace TP.ConcurrentProgramming.Presentation.Model
 
     private double TopBackingField;
     private double LeftBackingField;
+    private double _diameter;
 
-    private void NewPositionNotification(object sender, IPosition e)
+    private void NewPositionNotification(object? sender, IPosition e)
     {
-      Top = e.y; Left = e.x; 
+      Top = e.y;
+      Left = e.x;
     }
 
     private void RaisePropertyChanged([CallerMemberName] string propertyName = "")

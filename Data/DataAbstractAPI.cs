@@ -27,7 +27,7 @@ namespace TP.ConcurrentProgramming.Data
         public abstract double BoardWidth { get; set; }
         public abstract double BoardHeight { get; set; }
 
-        public abstract void SetCanvasSize(double height, double width);
+        public abstract void SetCanvasSize(double width, double height);
 
     #endregion public API
 

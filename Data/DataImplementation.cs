@@ -16,8 +16,6 @@ namespace TP.ConcurrentProgramming.Data
   internal class DataImplementation : DataAbstractAPI
   {
     #region ctor
-    public double MaxX { get; private set; }
-    public double MaxY { get; private set; }
     public DataImplementation()
     {
       MoveTimer = new Timer(Move, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(16)); //krok w terminologii programowania - przechodzenie z instrukcji do instrukcji 
@@ -25,26 +23,46 @@ namespace TP.ConcurrentProgramming.Data
                                                                                        // cykl odświeżania musi zależeć od prędkość kuli - czas odświeżania musi być mniejszy dla szybszych kul-> to musi być przy getterze velocity -> dlatgeo timer jest bez sensu
                                                                                        // data musi pozostać abstrakcyjne 
                                                                                        //TODO: do usunięcia
-      MaxX = 400;
-      MaxY = 420;
+                                                                                       // Set default values for board dimensions
+      BoardWidth = 800;
+      BoardHeight = 600;
+
+      Ball.Diameter = 20;
     }
 
-        #endregion ctor
+    #endregion ctor
 
-        #region DataAbstractAPI
+    #region DataAbstractAPI
 
-        public override void Start(int numberOfBalls, Action<IVector, IBall> upperLayerHandler)
+    public override void Start(int numberOfBalls, Action<IVector, IBall> upperLayerHandler)
     {
       if (Disposed)
         throw new ObjectDisposedException(nameof(DataImplementation));
       if (upperLayerHandler == null)
         throw new ArgumentNullException(nameof(upperLayerHandler));
       Random random = new Random();
+
+      double safeWidth = BoardWidth - Ball.Diameter;
+      double safeHeight = BoardHeight - Ball.Diameter;
+
+      if (safeWidth <= 0 || safeHeight <= 0)
+      {
+        throw new InvalidOperationException("Canvas size is too small for balls");
+      }
+
       for (int i = 0; i < numberOfBalls; i++)
       {
-        Vector startingPosition = new(random.Next(100, 400 - 100), random.Next(100, 400 - 100));
-                Vector startingVelocity = new((RandomGenerator.NextDouble() - 0.5) * 10, (RandomGenerator.NextDouble() - 0.5) * 10);
-                Ball newBall = new(startingPosition, startingVelocity);
+        Vector startingPosition = new(
+          random.NextDouble() * safeWidth,
+          random.NextDouble() * safeHeight
+        );
+
+        Vector startingVelocity = new(
+          (random.NextDouble() - 0.5) * 10,
+          (random.NextDouble() - 0.5) * 10
+        );
+
+        Ball newBall = new(startingPosition, startingVelocity);
         upperLayerHandler(startingPosition, newBall);
         BallsList.Add(newBall);
       }
@@ -54,10 +72,22 @@ namespace TP.ConcurrentProgramming.Data
     {
       if (Disposed)
         throw new ObjectDisposedException(nameof(DataImplementation));
-       MaxX = width - (Ball.Diameter);
-       MaxY = height - (Ball.Diameter);
-    }
 
+      double scaleX = width / BoardWidth;
+      double scaleY = height / BoardHeight;
+      double scaleAvg = (scaleX + scaleY) / 2;
+
+      // Skaluj wszystkie piłki
+      foreach (Ball ball in BallsList)
+      {
+        ball.ScalePosition(scaleX, scaleY);
+      }
+      Ball.ScaleDiameter(scaleAvg);
+
+      BoardWidth = width;
+      BoardHeight = height;
+    }
+    
 
     #endregion DataAbstractAPI
 
@@ -99,21 +129,25 @@ namespace TP.ConcurrentProgramming.Data
     public override double BoardWidth { get; set; }
     public override double BoardHeight { get; set; } //TODO: check if these fit the layer 
 
-    private void Move(object? x) //to sekwencyjne, więć jest niepotrzebne??? - to element kuli, kula nie może wiedzieć o istniniu innych kuli, więc do przeniesienia!!!
-                                 // balls representations are independent and self-contained - tu nie może być nic o innych kulach
-                                 // kolizje muszą być w warstwie Logic, a nie Data -> musimy w Logic mieć SEKCJĘ KRYTYCZNĄ (zamiana współbieżnego na sekwencyjne) - będą wątki dla każdej ze zderzających się kul i trzeba je powiązać 
-                                 // inna opcja oprócz sekcji krytycznej to IMMUTABLE   
-                                 // kula ma nie poruszać się o więcej niż jeden piksel 
+    private void Move(object? x) {//to sekwencyjne, więć jest niepotrzebne??? - to element kuli, kula nie może wiedzieć o istniniu innych kuli, więc do przeniesienia!!!
+                                  // balls representations are independent and self-contained - tu nie może być nic o innych kulach
+                                  // kolizje muszą być w warstwie Logic, a nie Data -> musimy w Logic mieć SEKCJĘ KRYTYCZNĄ (zamiana współbieżnego na sekwencyjne) - będą wątki dla każdej ze zderzających się kul i trzeba je powiązać 
+                                  // inna opcja oprócz sekcji krytycznej to IMMUTABLE   
+                                  // kula ma nie poruszać się o więcej niż jeden piksel 
 
-                             
+    
+          
+        if (BoardWidth <= 0 || BoardHeight <= 0)
+          return;
+
+        foreach (Ball item in BallsList)
         {
-            foreach (Ball item in BallsList)
-                item.Move(
-                    diameter: Ball.Diameter,
-                    boardWidth: (float)BoardWidth,
-                    boardHeight: (float) BoardHeight,
-                     8
-            ); 
+          item.Move(
+            diameter: Ball.Diameter,
+            boardWidth: BoardWidth,
+            boardHeight: BoardHeight
+          );
+        }
     }
 
     #endregion private
