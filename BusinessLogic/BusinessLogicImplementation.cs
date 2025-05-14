@@ -10,6 +10,8 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Numerics;
+using TP.ConcurrentProgramming.Data;
 using UnderneathLayerAPI = TP.ConcurrentProgramming.Data.DataAbstractAPI;
 
 namespace TP.ConcurrentProgramming.BusinessLogic
@@ -40,7 +42,7 @@ namespace TP.ConcurrentProgramming.BusinessLogic
       Disposed = true;
     }
 
-    public override void Start(int numberOfBalls, Action<IPosition, IBall> upperLayerHandler)
+    public override void Start(int numberOfBalls, Action<IVector, IBall> upperLayerHandler)
     {
       if (Disposed)
         throw new ObjectDisposedException(nameof(BusinessLogicImplementation));
@@ -52,7 +54,7 @@ namespace TP.ConcurrentProgramming.BusinessLogic
         var logicBall = new Ball(dataBall);
         _collisionManager.RegisterBall(logicBall);
         _balls.TryAdd(dataBall, logicBall);
-        upperLayerHandler(new Position(pos.x, pos.y), logicBall);
+        upperLayerHandler(pos, logicBall);
       });
     }
 
@@ -62,19 +64,18 @@ namespace TP.ConcurrentProgramming.BusinessLogic
 
     private bool Disposed = false;
 
-    private readonly UnderneathLayerAPI layerBellow;
+        private readonly UnderneathLayerAPI layerBellow;
     private readonly CollisionManager _collisionManager;
     private readonly ConcurrentDictionary<Data.IBall, Ball> _balls = new();
+    
+        #endregion private
 
-    #endregion private
-
-    #region SetCanvasSize
-    public override void SetCanvasSize(double width, double height)
+        #region SetCanvasSize
+        public override void SetCanvasSize(double width, double height)
         {
             if (Disposed)
                 throw new ObjectDisposedException(nameof(BusinessLogicImplementation));
-            layerBellow.SetCanvasSize(width, height);
-        }
+            layerBellow.SetCanvasSize(width, height);        }
         #endregion SetCanvasSize
 
         #region TestingInfrastructure
@@ -94,7 +95,7 @@ namespace TP.ConcurrentProgramming.BusinessLogic
     private readonly object _collisionLock = new();
     private bool _isRunning = true;
 
-    public void RegisterBall(Ball ball)
+        public void RegisterBall(Ball ball)
     {
       _balls.Add(ball);
       Task.Run(() => DetectCollisions(ball));
@@ -113,7 +114,7 @@ namespace TP.ConcurrentProgramming.BusinessLogic
               ResolveCollision(ball, other);
             }
           }
-          CheckWallCollision(ball);
+          //CheckWallCollision(ball, boardWidth, boardHeight, borderThickness);
         }
         await Task.Delay(10);
       }
@@ -131,10 +132,21 @@ namespace TP.ConcurrentProgramming.BusinessLogic
 
     }
 
-    private void CheckWallCollision(Ball ball)
+    private void CheckWallCollision(Ball ball, double boardWidth, double boardHeight, double borderThickness)
     {
-      // Logika odbijania od ścian
-    }
+
+            if (ball.Position.x <= 0 || ball.Position.x >= boardWidth - ball.Diameter - borderThickness)
+            {
+                ball.SetVelocity(-ball.Velocity.x, ball.Velocity.y);
+            }
+
+            if (ball.Position.y <= 0 || ball.Position.y >= boardHeight - ball.Diameter - borderThickness)
+            {
+                ball.SetVelocity(ball.Velocity.x, -ball.Velocity.y);
+            }
+
+            //notify()?
+        }
 
     public void Dispose() => _isRunning = false;
   }

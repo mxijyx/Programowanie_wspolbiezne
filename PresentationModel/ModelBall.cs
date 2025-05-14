@@ -13,6 +13,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using TP.ConcurrentProgramming.BusinessLogic;
+using TP.ConcurrentProgramming.Data;
 using LogicIBall = TP.ConcurrentProgramming.BusinessLogic.IBall;
 
 namespace TP.ConcurrentProgramming.Presentation.Model
@@ -77,7 +78,7 @@ namespace TP.ConcurrentProgramming.Presentation.Model
     private double LeftBackingField;
     private double _diameter;
 
-    private void NewPositionNotification(object? sender, IPosition e)
+    private void NewPositionNotification(object? sender, IVector e)
     {
       Top = e.y;
       Left = e.x;

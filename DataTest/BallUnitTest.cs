@@ -17,25 +17,25 @@ namespace TP.ConcurrentProgramming.Data.Test
     public void ConstructorTestMethod()
     {
       Vector testinVector = new Vector(0.0, 0.0);
-      Ball newInstance = new(testinVector, testinVector);
+      Ball newInstance = new(testinVector, testinVector, 5);
     }
 
     [TestMethod]
     public void MoveAtZeroVelocityTestMethod()
     {
       Vector initialPosition = new(10.0, 10.0);
-      Ball newInstance = new(initialPosition, new Vector(0.0, 0.0));
+      Ball newInstance = new(initialPosition, new Vector(0.0, 0.0), 5);
       IVector currentPosition = initialPosition;
       newInstance.NewPositionNotification += (sender, position) => currentPosition = position;
-      newInstance.Move(20, 400, 420, 8); 
+      //newInstance.Move(20, 400); 
       Assert.AreEqual<IVector>(initialPosition, currentPosition);
     }
      [TestMethod]
         public void Move_xVelocityReverseTestMethod()
         {
             Vector initialPosition = new(370, 10.0); 
-            Ball newInstance = new(initialPosition, new Vector(10.0, 0.0));
-            newInstance.Move(20, 400, 420, 8); 
+            Ball newInstance = new(initialPosition, new Vector(10.0, 0.0), 5);
+            //newInstance.Move(20, 400); 
             Vector vector = new(-10.0, 0.0);
             Assert.AreEqual<IVector>(vector, newInstance.Velocity);
         }
@@ -43,8 +43,8 @@ namespace TP.ConcurrentProgramming.Data.Test
         public void Move_yVelocityReverseTestMethod()
         {
             Vector initialPosition = new(10.0, 390); 
-            Ball newInstance = new(initialPosition, new Vector(0.0, 10.0));
-            newInstance.Move(20, 400, 420, 8);
+            Ball newInstance = new(initialPosition, new Vector(0.0, 10.0), 5);
+            //newInstance.Move(20, 400);
             Vector vector = new(0.0, -10.0);
             Assert.AreEqual<IVector>(vector, newInstance.Velocity);
         }

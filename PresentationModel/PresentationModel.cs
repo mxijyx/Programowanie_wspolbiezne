@@ -81,7 +81,7 @@ namespace TP.ConcurrentProgramming.Presentation.Model
             set => dataLayer.BoardHeight = value;
         }
 
-        private void StartHandler(BusinessLogic.IPosition position, BusinessLogic.IBall ball)
+        private void StartHandler(IVector position, BusinessLogic.IBall ball)
     {
       ModelBall newBall = new ModelBall(position.x, position.y, ball) { Diameter = 20.0 };
       BallChanged.Invoke(this, new BallChaneEventArgs() { Ball = newBall });

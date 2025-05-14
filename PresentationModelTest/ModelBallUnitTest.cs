@@ -9,6 +9,7 @@
 //_____________________________________________________________________________________________________________________________________
 
 using TP.ConcurrentProgramming.BusinessLogic;
+using TP.ConcurrentProgramming.Data;
 
 namespace TP.ConcurrentProgramming.Presentation.Model.Test
 {
@@ -18,7 +19,7 @@ namespace TP.ConcurrentProgramming.Presentation.Model.Test
     [TestMethod]
     public void ConstructorTestMethod()
     {
-      ModelBall ball = new ModelBall(0.0, 0.0, 0.0, 0.0, new BusinessLogicIBallFixture());
+      ModelBall ball = new ModelBall(0.0, 0.0, new BusinessLogicIBallFixture());
       Assert.AreEqual<double>(0.0, ball.Top);
       Assert.AreEqual<double>(0.0, ball.Top);
     }
@@ -27,14 +28,14 @@ namespace TP.ConcurrentProgramming.Presentation.Model.Test
     public void PositionChangeNotificationTestMethod()
     {
       int notificationCounter = 0;
-      ModelBall ball = new ModelBall(0, 0.0, 0.0, 0.0, new BusinessLogicIBallFixture());
+      ModelBall ball = new ModelBall(0, 0.0, new BusinessLogicIBallFixture());
       ball.PropertyChanged += (sender, args) => notificationCounter++;
       Assert.AreEqual(0, notificationCounter);
       ball.SetLeft(1.0);
       Assert.AreEqual<int>(1, notificationCounter);
       Assert.AreEqual<double>(1.0, ball.Left);
       Assert.AreEqual<double>(0.0, ball.Top);
-      ball.SettTop(1.0);
+      ball.SetTop(1.0);
       Assert.AreEqual(2, notificationCounter);
       Assert.AreEqual<double>(1.0, ball.Left);
       Assert.AreEqual<double>(1.0, ball.Top);
@@ -45,13 +46,30 @@ namespace TP.ConcurrentProgramming.Presentation.Model.Test
 
     private class BusinessLogicIBallFixture : BusinessLogic.IBall
     {
-      public event EventHandler<IPosition>? NewPositionNotification;
+            public IVector Velocity => throw new NotImplementedException();
 
-      public void Dispose()
+            public IVector Position => throw new NotImplementedException();
+
+            public double Diameter => throw new NotImplementedException();
+
+            public event EventHandler<IVector>? NewPositionNotification;
+            public event EventHandler<double> DiameterChanged;
+
+            public void Dispose()
       {
         throw new NotImplementedException();
       }
-    }
+
+            public double SetPosition(double x, double y)
+            {
+                throw new NotImplementedException();
+            }
+
+            public double SetVelocity(double x, double y)
+            {
+                throw new NotImplementedException();
+            }
+        }
 
     #endregion testing instrumentation
   }

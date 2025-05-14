@@ -8,6 +8,9 @@
 //
 //_____________________________________________________________________________________________________________________________________
 
+using System.Numerics;
+using TP.ConcurrentProgramming.Data;
+
 namespace TP.ConcurrentProgramming.BusinessLogic
 {
   internal class Ball : IBall
@@ -16,13 +19,13 @@ namespace TP.ConcurrentProgramming.BusinessLogic
     {
       _dataBall = dataBall;
       dataBall.NewPositionNotification += (s, pos) =>
-        NewPositionNotification?.Invoke(this, new Position(pos.x, pos.y));
+        NewPositionNotification?.Invoke(this, pos);
       dataBall.NewVelocityNotification += HandleCollision;
     }
 
     #region IBall
 
-    public event EventHandler<IPosition>? NewPositionNotification;
+    public event EventHandler<IVector>? NewPositionNotification;
     public event EventHandler<double>? DiameterChanged;
 
     #endregion IBall
@@ -32,10 +35,16 @@ namespace TP.ConcurrentProgramming.BusinessLogic
     private readonly Data.IBall _dataBall;
     private readonly object _collisionLock = new();
 
-    private void RaisePositionChangeEvent(object? sender, Data.IVector e)
+        public IVector Velocity => throw new NotImplementedException();
+
+        public IVector Position => throw new NotImplementedException();
+
+        public double Diameter => throw new NotImplementedException();
+
+        private void RaisePositionChangeEvent(object? sender, Data.IVector e)
     {
-      NewPositionNotification?.Invoke(this, new Position(e.x, e.y));
-    }
+            NewPositionNotification?.Invoke(this, e);
+            }
     private void HandleCollision(object? sender, Data.IVector velocity)
     {
       lock (_collisionLock)
@@ -43,6 +52,16 @@ namespace TP.ConcurrentProgramming.BusinessLogic
         // Aktualizacja prędkości po kolizji
       }
     }
-    #endregion private
-  }
+
+        public double SetVelocity(double x, double y)
+        {
+            throw new NotImplementedException();
+        }
+
+        public double SetPosition(double x, double y)
+        {
+            throw new NotImplementedException();
+        }
+        #endregion private
+    }
 }

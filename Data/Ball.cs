@@ -8,100 +8,96 @@
 //
 //_____________________________________________________________________________________________________________________________________
 
+using System.Security.Cryptography.X509Certificates;
+
 namespace TP.ConcurrentProgramming.Data
 {
-  internal class Ball : IBall
-  {
-    #region ctor
-
-    internal Ball(Vector initialPosition, Vector initialVelocity, double initialMass)
+    internal class Ball : IBall
     {
-      _position = initialPosition;
-      _velocity = initialVelocity;
-      Mass = initialMass;
-      StartMovement();
-    }
+        #region ctor
 
-    #endregion ctor
-
-    #region IBall
-
-    public event EventHandler<IVector>? NewPositionNotification;
-    public event EventHandler<IVector>? NewVelocityNotification;
-    public event EventHandler<double>? DiameterChanged;
-
-    public IVector Velocity
-    {
-        get { lock (_syncRoot) return _velocity; }
-        private set { lock (_syncRoot) _velocity = (Vector)value; }
-    }
-
-    public IVector Position
-    {
-        get
+        internal Ball(Vector initialPosition, Vector initialVelocity, double initialMass)
         {
-            lock (_syncRoot) return _position; 
+            _position = initialPosition;
+            _velocity = initialVelocity;
+            Mass = initialMass;
+            StartMovement();
         }
-    }
 
-    public double Mass
-    {
-        get { lock (_syncRoot) return _mass; }
-        set
+        #endregion ctor
+
+        #region IBall
+
+        public event EventHandler<IVector>? NewPositionNotification;
+        public event EventHandler<IVector>? NewVelocityNotification;
+        public event EventHandler<double>? DiameterChanged;
+
+        public IVector Velocity
         {
-            lock (_syncRoot)
+            get { lock (_syncRoot) return _velocity; }
+            private set { lock (_syncRoot) _velocity = (Vector)value; }
+        }
+
+        public IVector Position
+        {
+            get
             {
-                if (Math.Abs(_mass - value) < double.Epsilon) return;
-                _mass = value;
-                Diameter = CalculateDiameter(value);
+                lock (_syncRoot) return _position;
             }
-            DiameterChanged?.Invoke(this, Diameter);
         }
-    }
 
-    public double Diameter { get; internal set; }
+        public double Mass
+        {
+            get { lock (_syncRoot) return _mass; }
+            set
+            {
+                lock (_syncRoot)
+                {
+                    if (Math.Abs(_mass - value) < double.Epsilon) return;
+                    _mass = value;
+                    Diameter = CalculateDiameter(value);
+                }
+                DiameterChanged?.Invoke(this, Diameter);
+            }
+        }
+
+        public double Diameter { get; internal set; }
 
         #endregion IBall
 
         #region private
-    private Vector _position;
-    private Vector _velocity;
-    private double _mass;
-    private readonly object _syncRoot = new();
-    private bool _isMoving = true;
+        private Vector _position;
+        private Vector _velocity;
+        private double _mass;
+        private readonly object _syncRoot = new();
+        private bool _isMoving = true;
 
-    private void RaiseNewPositionChangeNotification()
-    {
-      NewPositionNotification?.Invoke(this, _position);
-    }
-
-    private async void StartMovement()
-    {
-        await Task.Run(() =>
+        private void RaiseNewPositionChangeNotification()
         {
-            while (_isMoving)
+            NewPositionNotification?.Invoke(this, _position);
+        }
+
+        private async void StartMovement()
+        {
+            await Task.Run(() =>
             {
-                UpdatePosition();
-                Thread.Sleep(16); // ~60 FPS
-            }
-        });
-    }
+                while (_isMoving)
+                {
+                    UpdatePosition();
+                    Thread.Sleep(16); // ~60 FPS
+                }
+            });
+        }
 
-    private void UpdatePosition()
-    {
-        var newPosition = new Vector(
-            _position.x + _velocity.x,
-            _position.y + _velocity.y
-        );
+        private void UpdatePosition()
+        {
+            var newPosition = new Vector(
+                _position.x + _velocity.x,
+                _position.y + _velocity.y
+            );
 
-        _position = newPosition;
-        NewPositionNotification?.Invoke(this, _position);
-    }
-
-        public void SetVelocity(double x, double y)
-        { 
-            Velocity = new Vector(x, y);
-            NewVelocityNotification?.Invoke(this, Velocity);
+            _position = newPosition;
+            NewPositionNotification?.Invoke(this, _position);
         }
 
 
@@ -123,5 +119,20 @@ namespace TP.ConcurrentProgramming.Data
             DiameterChanged?.Invoke(null, newDiameter);
         }
         #endregion
+
+        public void SetPosition(double x, double y)
+        {
+            lock (_syncRoot)
+            {
+                _position = new Vector(x, y);
+                RaiseNewPositionChangeNotification();
+            }
+
+        }
+        public void SetVelocity(double x, double y)
+        {
+            Velocity = new Vector(x, y);
+            NewVelocityNotification?.Invoke(this, Velocity);
+        }
     }
 }
