@@ -122,17 +122,49 @@ namespace TP.ConcurrentProgramming.BusinessLogic
 
     private bool CheckCollision(Ball a, Ball b)
     {
-      // Implementacja detekcji kolizji
-      return false; //Not implemented
+            var dx = a.Position.x - b.Position.x;
+            var dy = a.Position.y - b.Position.y;
+            var distance = Math.Sqrt(dx * dx + dy * dy);
+
+            var radiusSum = (a.Diameter + b.Diameter) / 2;
+
+            if (distance < radiusSum)
+            {
+                return true;
+            }
+            // Implementacja detekcji kolizji
+            return false; //Not implemented
     }
 
     private void ResolveCollision(Ball a, Ball b)
     {
-      // Obliczenia fizyczne dla zderzenia
+            // Obliczenia fizyczne dla zderzenia
+            var dx = a.Position.x - b.Position.x;
+            var dy = a.Position.y - b.Position.y;
+            var distance = Math.Sqrt(dx * dx + dy * dy);
+            if(distance == 0) return; // Avoid division by zero
 
-    }
+            var va = a.Velocity.x* dx + a.Velocity.y * dy;
+            va = va / distance;
+            var vb = b.Velocity.x * dx + b.Velocity.y * dy;
+            vb = vb / distance;
 
-    private void CheckWallCollision(Ball ball, double boardWidth, double boardHeight, double borderThickness)
+            if (va <= vb) return; // No collision
+            //else -> collision 
+            var newVa = (va * (a.Diameter - b.Diameter) + 2 * b.Diameter * vb) / (a.Diameter + b.Diameter);
+            var newVb = (vb * (b.Diameter - a.Diameter) + 2 * a.Diameter * va) / (a.Diameter + b.Diameter);
+            double newAx = newVa * dx / distance;
+            double newAy = newVa * dy / distance;
+            double newBx = newVb * dx / distance;
+            double newBy = newVb * dy / distance;
+            a.SetVelocity(newAx, newAy);
+            b.SetVelocity(newBx, newBy);
+            a.SetPosition(a.Position.x + newAx, a.Position.y + newAy);
+            b.SetPosition(b.Position.x + newBx, b.Position.y + newBy);
+
+        }
+
+        private void CheckWallCollision(Ball ball, double boardWidth, double boardHeight, double borderThickness)
     {
 
             if (ball.Position.x <= 0 || ball.Position.x >= boardWidth - ball.Diameter - borderThickness)
