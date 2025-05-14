@@ -97,7 +97,7 @@ namespace TP.ConcurrentProgramming.Data
       {
         if (disposing)
         {
-          MoveTimer.Dispose();
+          //MoveTimer.Dispose();
           foreach (var ball in BallsList)
           {
             ball.Stop();
