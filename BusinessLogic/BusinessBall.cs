@@ -21,11 +21,14 @@ namespace TP.ConcurrentProgramming.BusinessLogic
       dataBall.NewPositionNotification += (s, pos) =>
         NewPositionNotification?.Invoke(this, pos);
       dataBall.NewVelocityNotification += HandleCollision;
+      dataBall.DiameterChanged += (s, d) =>
+        DiameterChanged?.Invoke(this, d);
     }
 
     #region IBall
 
     public event EventHandler<IVector>? NewPositionNotification;
+    public event EventHandler<IVector>? NewVelocityNotification;
     public event EventHandler<double>? DiameterChanged;
 
     #endregion IBall
@@ -33,13 +36,28 @@ namespace TP.ConcurrentProgramming.BusinessLogic
     #region private
 
     private readonly Data.IBall _dataBall;
-    private readonly object _collisionLock = new();
+    private readonly object _syncRoot = new();
 
-    public IVector Velocity => _dataBall.Velocity;
+    public IVector Velocity
+    {
+      get { return _dataBall.Velocity; }
+      
+    }
 
-    public IVector Position => _dataBall.Position;
+    public IVector Position
+    {
+      get { return _dataBall.Position; }
+    }
 
-    public double Diameter => _dataBall.Diameter;
+    public double Diameter
+    {
+      get { return _dataBall.Diameter; }
+    }
+
+    public double Mass
+    {
+      get { return _dataBall.Mass;  }
+    }
 
     private void RaisePositionChangeEvent(object? sender, Data.IVector e)
     {
@@ -47,20 +65,23 @@ namespace TP.ConcurrentProgramming.BusinessLogic
     }
     private void HandleCollision(object? sender, Data.IVector velocity)
     {
-      lock (_collisionLock)
-      {
-        // Aktualizacja prędkości po kolizji
-      }
+      NewVelocityNotification?.Invoke(this, velocity);
     }
 
-        public double SetVelocity(double x, double y)
+        public void SetVelocity(double x, double y)
         {
-            throw new NotImplementedException();
+          lock (_syncRoot)
+          {
+            _dataBall.SetVelocity(x, y);
+          }
         }
 
-        public double SetPosition(double x, double y)
+        public void SetPosition(double x, double y)
         {
-            throw new NotImplementedException();
+          lock (_syncRoot)
+          {
+            _dataBall.SetPosition(x, y);
+          }
         }
         #endregion private
     }

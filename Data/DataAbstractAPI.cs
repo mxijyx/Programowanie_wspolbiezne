@@ -76,6 +76,7 @@ namespace TP.ConcurrentProgramming.Data
         IVector Velocity { get; }
         IVector Position { get; }
         double Mass { get; set; } 
-        double Diameter { get; } 
+        double Diameter { get; }
+        void SetPosition(double d, double d1);
   }
 }

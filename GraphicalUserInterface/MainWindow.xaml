@@ -5,12 +5,12 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:TP.ConcurrentProgramming.Presentation.ViewModel;assembly=TP.ConcurrentProgramming.PresentationViewModel"
         mc:Ignorable="d"
-        Title="Presentation layer targeting reactive behaviour" WindowState="Maximized" d:DesignWidth="783.514">
+        Title="Presentation layer targeting reactive behaviour" WindowState="Maximized" Width="591">
     <Window.DataContext>
         <vm:MainWindowViewModel />
     </Window.DataContext>
         <Grid>
-            <Border BorderThickness="4" BorderBrush="Green" Margin="211,10,60,10">
+            <Border x:Name="GameBorder" BorderThickness="4" BorderBrush="Green" Margin="211,10,270,128">
                 <ItemsControl ItemsSource="{Binding Balls}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>

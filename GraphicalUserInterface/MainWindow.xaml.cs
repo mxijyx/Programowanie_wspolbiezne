@@ -30,6 +30,8 @@ namespace TP.ConcurrentProgramming.PresentationView
             viewModel.WindowWidth = this.Width;
             viewModel.WindowHeight = this.Height;
 
+            viewModel.UpdateCanvasSize(Width, Height);
+
             this.SizeChanged += (s, e) =>
             {
                 viewModel.WindowWidth = this.Width;

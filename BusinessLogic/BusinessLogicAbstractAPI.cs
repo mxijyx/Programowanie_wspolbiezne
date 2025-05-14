@@ -64,7 +64,7 @@ namespace TP.ConcurrentProgramming.BusinessLogic
         IVector Velocity { get; }
         IVector Position { get; }
         double Diameter { get; }
-        double SetVelocity(double x, double y);
-        double SetPosition(double x, double y);
+        void SetVelocity(double x, double y);
+        void SetPosition(double x, double y);
     }
 }

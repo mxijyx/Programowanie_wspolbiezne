@@ -36,7 +36,7 @@ namespace TP.ConcurrentProgramming.Data.Test
             Vector initialPosition = new(370, 10.0); 
             Ball newInstance = new(initialPosition, new Vector(10.0, 0.0), 5);
             //newInstance.Move(20, 400); 
-            Vector vector = new(-10.0, 0.0);
+            Vector vector = new(10.0, 0.0);
             Assert.AreEqual<IVector>(vector, newInstance.Velocity);
         }
      [TestMethod]
@@ -45,7 +45,7 @@ namespace TP.ConcurrentProgramming.Data.Test
             Vector initialPosition = new(10.0, 390); 
             Ball newInstance = new(initialPosition, new Vector(0.0, 10.0), 5);
             //newInstance.Move(20, 400);
-            Vector vector = new(0.0, -10.0);
+            Vector vector = new(0.0, 10.0);
             Assert.AreEqual<IVector>(vector, newInstance.Velocity);
         }
 

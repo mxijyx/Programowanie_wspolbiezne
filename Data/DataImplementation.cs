@@ -46,16 +46,22 @@ namespace TP.ConcurrentProgramming.Data
 
     public override void SetCanvasSize(double width, double height)
     {
+      if (BoardWidth <= 0 || BoardHeight <= 0)
       {
-        double scaleX = width / BoardWidth;
-        double scaleY = height / BoardHeight;
-
-        foreach (Ball ball in BallsList)
-        {
-          ball.ScalePosition(scaleX, scaleY);
-        }
         BoardWidth = width;
         BoardHeight = height;
+        return;
+      }
+
+      double scaleX = width / BoardWidth;
+      double scaleY = height / BoardHeight;
+
+      BoardWidth = width;
+      BoardHeight = height;
+
+      foreach (var ball in BallsList)
+      {
+        ball.ScalePosition(scaleX, scaleY);
       }
     }
 

@@ -64,6 +64,16 @@ namespace TP.ConcurrentProgramming.BusinessLogic.Test
 
     private class DataLayerConstructorFixcure : Data.DataAbstractAPI
     {
+      public override void SetCanvasSize(double width, double height)
+      {
+        throw new NotImplementedException();
+      }
+
+      public override List<Data.IBall> CreateBalls(int count, double boardWidth, double boardHeight, double minMass, double maxMass)
+      {
+        throw new NotImplementedException();
+      }
+
       public override void Dispose()
       { }
 
@@ -71,11 +81,24 @@ namespace TP.ConcurrentProgramming.BusinessLogic.Test
       {
         throw new NotImplementedException();
       }
+
+      public override double BoardWidth { get; set; }
+      public override double BoardHeight { get; set; }
     }
 
     private class DataLayerDisposeFixcure : Data.DataAbstractAPI
     {
       internal bool Disposed = false;
+
+      public override void SetCanvasSize(double width, double height)
+      {
+        throw new NotImplementedException();
+      }
+
+      public override List<Data.IBall> CreateBalls(int count, double boardWidth, double boardHeight, double minMass, double maxMass)
+      {
+        throw new NotImplementedException();
+      }
 
       public override void Dispose()
       {
@@ -86,12 +109,25 @@ namespace TP.ConcurrentProgramming.BusinessLogic.Test
       {
         throw new NotImplementedException();
       }
+
+      public override double BoardWidth { get; set; }
+      public override double BoardHeight { get; set; }
     }
 
     private class DataLayerStartFixcure : Data.DataAbstractAPI
     {
       internal bool StartCalled = false;
       internal int NumberOfBallseCreated = -1;
+
+      public override void SetCanvasSize(double width, double height)
+      {
+        throw new NotImplementedException();
+      }
+
+      public override List<Data.IBall> CreateBalls(int count, double boardWidth, double boardHeight, double minMass, double maxMass)
+      {
+        throw new NotImplementedException();
+      }
 
       public override void Dispose()
       { }
@@ -103,6 +139,9 @@ namespace TP.ConcurrentProgramming.BusinessLogic.Test
         upperLayerHandler(new DataVectorFixture(), new DataBallFixture());
       }
 
+      public override double BoardWidth { get; set; }
+      public override double BoardHeight { get; set; }
+
       private record DataVectorFixture : Data.IVector
       {
         public double x { get; init; }
@@ -111,9 +150,19 @@ namespace TP.ConcurrentProgramming.BusinessLogic.Test
 
       private class DataBallFixture : Data.IBall
       {
-        public IVector Velocity { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public void SetVelocity(double x, double y)
+        {
+          throw new NotImplementedException();
+        }
 
+        public IVector Velocity { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public IVector Position { get; }
+        public double Mass { get; set; }
+        public double Diameter { get; }
+
+        public event EventHandler<IVector>? NewVelocityNotification;
         public event EventHandler<IVector>? NewPositionNotification = null;
+        public event EventHandler<double>? DiameterChanged;
       }
     }
 

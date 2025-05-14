@@ -65,7 +65,7 @@ namespace TP.ConcurrentProgramming.Presentation.Model.Test
                 throw new NotImplementedException();
             }
 
-            public double SetVelocity(double x, double y)
+            public void SetVelocity(double x, double y)
             {
                 throw new NotImplementedException();
             }

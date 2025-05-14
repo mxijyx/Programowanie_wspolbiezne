@@ -9,6 +9,7 @@
 
 using System;
 using System.Collections.ObjectModel;
+using System.Threading;
 using TP.ConcurrentProgramming.Presentation.Model;
 using TP.ConcurrentProgramming.Presentation.ViewModel.MVVMLight;
 using ModelIBall = TP.ConcurrentProgramming.Presentation.Model.IBall;
@@ -59,13 +60,20 @@ namespace TP.ConcurrentProgramming.Presentation.ViewModel
         }
     internal MainWindowViewModel(ModelAbstractApi modelLayerAPI)
     {
-      ModelLayer = modelLayerAPI == null ? ModelAbstractApi.CreateModel() : modelLayerAPI;
-      Observer = ModelLayer.Subscribe<ModelIBall>(x => Balls.Add(x));
+      ModelLayer = modelLayerAPI ?? ModelAbstractApi.CreateModel();
+      var context = SynchronizationContext.Current;
+      Observer = ModelLayer.Subscribe<ModelIBall>(x =>
+      {
+        if (SynchronizationContext.Current == context)
+          Balls.Add(x);
+        else
+          context.Post(_ => Balls.Add(x), null);
+      });
       StartCommand = new RelayCommand(Start);
       StopCommand = new RelayCommand(Stop);
 
-      WindowWidth = 800;
-      WindowHeight = 600;
+      WindowWidth = 1920;
+      WindowHeight = 1080;
 
       ModelLayer.SetCanvasSize(WindowWidth, WindowHeight);
     }

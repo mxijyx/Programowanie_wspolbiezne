@@ -10,6 +10,7 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Drawing;
 using System.Numerics;
 using TP.ConcurrentProgramming.Data;
 using UnderneathLayerAPI = TP.ConcurrentProgramming.Data.DataAbstractAPI;
@@ -65,22 +66,32 @@ namespace TP.ConcurrentProgramming.BusinessLogic
     private bool Disposed = false;
 
         private readonly UnderneathLayerAPI layerBellow;
-    private readonly CollisionManager _collisionManager;
+    private CollisionManager _collisionManager;
     private readonly ConcurrentDictionary<Data.IBall, Ball> _balls = new();
-    
-        #endregion private
 
-        #region SetCanvasSize
-        public override void SetCanvasSize(double width, double height)
-        {
-            if (Disposed)
-                throw new ObjectDisposedException(nameof(BusinessLogicImplementation));
-            layerBellow.SetCanvasSize(width, height);        }
-        #endregion SetCanvasSize
+    #endregion private
 
-        #region TestingInfrastructure
+    #region SetCanvasSize
+    public override void SetCanvasSize(double width, double height)
+    {
+      if (Disposed)
+        throw new ObjectDisposedException(nameof(BusinessLogicImplementation));
 
-        [Conditional("DEBUG")]
+      _collisionManager?.Dispose();
+
+      layerBellow.SetCanvasSize(width, height);
+
+      _collisionManager = new CollisionManager((int)width, (int)height);
+      foreach (var ball in _balls.Values)
+      {
+        _collisionManager.RegisterBall(ball);
+      }
+    }
+#endregion SetCanvasSize
+
+    #region TestingInfrastructure
+
+    [Conditional("DEBUG")]
     internal void CheckObjectDisposed(Action<bool> returnInstanceDisposed)
     {
       returnInstanceDisposed(Disposed);
@@ -91,98 +102,249 @@ namespace TP.ConcurrentProgramming.BusinessLogic
 
   internal class CollisionManager : IDisposable
   {
-    private readonly ConcurrentBag<Ball> _balls = new();
-    private readonly object _collisionLock = new();
+    private const int MaxBallsPerNode = 4;
+    private readonly object _treeLock = new();
+    private QuadTree _quadTree;
     private bool _isRunning = true;
+    private Size _areaSize;
+    private readonly Timer _collisionCheckTimer;
 
-        public void RegisterBall(Ball ball)
+    public CollisionManager(int width = 3000, int height = 1500)
     {
-      _balls.Add(ball);
-      Task.Run(() => DetectCollisions(ball));
+      _areaSize = new Size(width, height);
+      RebuildTree();
+      _collisionCheckTimer = new Timer(_ => CheckCollisions(), null, 0, 16);
     }
 
-    private async void DetectCollisions(Ball ball)
+    public void RegisterBall(Ball ball)
+    {
+      lock (_treeLock)
+      {
+        _quadTree.Insert(ball);
+      }
+
+      Task.Run(() => UpdateBall(ball));
+    }
+
+    private async void UpdateBall(Ball ball)
     {
       while (_isRunning)
       {
-        lock (_collisionLock)
+        lock (_treeLock)
         {
-          foreach (var other in _balls)
-          {
-            if (ball != other && CheckCollision(ball, other))
-            {
-              ResolveCollision(ball, other);
-            }
-          }
-          //CheckWallCollision(ball, boardWidth, boardHeight, borderThickness);
+          _quadTree.Update(ball);
         }
+
         await Task.Delay(10);
+      }
+    }
+
+    public void CheckCollisions()
+    {
+      lock (_treeLock)
+      {
+        var potentialCollisions = _quadTree.GetPotentialCollisions();
+        foreach (var (a, b) in potentialCollisions)
+        {
+          if (CheckCollision(a, b))
+          {
+            ResolveCollision(a, b);
+          }
+        }
       }
     }
 
     private bool CheckCollision(Ball a, Ball b)
     {
-            var dx = a.Position.x - b.Position.x;
-            var dy = a.Position.y - b.Position.y;
-            var distance = Math.Sqrt(dx * dx + dy * dy);
-
-            var radiusSum = (a.Diameter + b.Diameter) / 2;
-
-            if (distance < radiusSum)
-            {
-                return true;
-            }
-            // Implementacja detekcji kolizji
-            return false; //Not implemented
+      double dx = a.Position.x - b.Position.x;
+      double dy = a.Position.y - b.Position.y;
+      double distance = Math.Sqrt(dx * dx + dy * dy);
+      return distance < (a.Diameter / 2 + b.Diameter / 2);
     }
 
     private void ResolveCollision(Ball a, Ball b)
     {
-            // Obliczenia fizyczne dla zderzenia
-            var dx = a.Position.x - b.Position.x;
-            var dy = a.Position.y - b.Position.y;
-            var distance = Math.Sqrt(dx * dx + dy * dy);
-            if(distance == 0) return; // Avoid division by zero
+      Vector2 normal = new Vector2(
+        (float)(b.Position.x - a.Position.x),
+        (float)(b.Position.y - a.Position.y)
+      );
+      normal = Vector2.Normalize(normal);
 
-            var va = a.Velocity.x* dx + a.Velocity.y * dy;
-            va = va / distance;
-            var vb = b.Velocity.x * dx + b.Velocity.y * dy;
-            vb = vb / distance;
+      Vector2 relativeVelocity = new Vector2(
+        (float)(b.Velocity.x - a.Velocity.x),
+        (float)(b.Velocity.y - a.Velocity.y)
+      );
 
-            if (va <= vb) return; // No collision
-            //else -> collision 
-            var newVa = (va * (a.Diameter - b.Diameter) + 2 * b.Diameter * vb) / (a.Diameter + b.Diameter);
-            var newVb = (vb * (b.Diameter - a.Diameter) + 2 * a.Diameter * va) / (a.Diameter + b.Diameter);
-            double newAx = newVa * dx / distance;
-            double newAy = newVa * dy / distance;
-            double newBx = newVb * dx / distance;
-            double newBy = newVb * dy / distance;
-            a.SetVelocity(newAx, newAy);
-            b.SetVelocity(newBx, newBy);
-            a.SetPosition(a.Position.x + newAx, a.Position.y + newAy);
-            b.SetPosition(b.Position.x + newBx, b.Position.y + newBy);
+      float impulse = Vector2.Dot(relativeVelocity, normal);
+      if (impulse > 0) return; // Kolizja już się rozwiązuje
 
-        }
+      float restitution = 0.8f; // Współczynnik restytucji (mniej niż 1 dla tłumienia)
+      float j = -(1 + restitution) * impulse / (1 / (float)a.Mass + 1 / (float)b.Mass);
 
-        private void CheckWallCollision(Ball ball, double boardWidth, double boardHeight, double borderThickness)
+      a.SetVelocity(
+        a.Velocity.x - (j * normal.X) / (float)a.Mass,
+        a.Velocity.y - (j * normal.Y) / (float)a.Mass
+      );
+
+      b.SetVelocity(
+        b.Velocity.x + (j * normal.X) / (float)b.Mass,
+        b.Velocity.y + (j * normal.Y) / (float)b.Mass
+      );
+    }
+
+    public void Dispose()
+    {
+      _collisionCheckTimer?.Dispose();
+      _isRunning = false;
+    }
+    
+
+    private void RebuildTree()
+    {
+      _quadTree = new QuadTree(
+        new Rectangle(0, 0, _areaSize.Width, _areaSize.Height),
+        MaxBallsPerNode
+      );
+    }
+  }
+
+  internal class QuadTree
+  {
+    private readonly Rectangle _bounds;
+    private readonly int _maxBallsPerNode;
+    private readonly List<Ball> _balls = new();
+    private QuadTree[] _nodes;
+    private readonly object _lock = new();
+
+    public QuadTree(Rectangle bounds, int maxBallsPerNode)
+    {
+      _bounds = bounds;
+      _maxBallsPerNode = maxBallsPerNode;
+    }
+
+    public void Insert(Ball ball)
+    {
+      lock (_lock)
+      {
+        if (_nodes != null)
         {
-          lock (_collisionLock)
+          int index = GetIndex(ball.Position);
+          if (index != -1)
           {
-            if (ball.Position.x <= 0 || ball.Position.x >= boardWidth - ball.Diameter - borderThickness)
-            {
-              ball.SetVelocity(-ball.Velocity.x, ball.Velocity.y);
-            }
-
-            if (ball.Position.y <= 0 || ball.Position.y >= boardHeight - ball.Diameter - borderThickness)
-            {
-              ball.SetVelocity(ball.Velocity.x, -ball.Velocity.y);
-            }
-
-            //notify()?
+            _nodes[index].Insert(ball);
+            return;
           }
-
         }
 
-    public void Dispose() => _isRunning = false;
+        _balls.Add(ball);
+
+        if (_balls.Count > _maxBallsPerNode && _nodes == null)
+        {
+          Subdivide();
+          RedistributeBalls();
+        }
+      }
+    }
+    public void Update(Ball ball)
+    {
+      lock (_lock)
+      {
+        if (!_bounds.Contains(ball.Position))
+        {
+          Remove(ball);
+          Insert(ball);
+        }
+      }
+    }
+
+    public IEnumerable<(Ball, Ball)> GetPotentialCollisions()
+    {
+      lock (_lock)
+      {
+        var collisions = new List<(Ball, Ball)>();
+
+        for (int i = 0; i < _balls.Count; i++)
+          for (int j = i + 1; j < _balls.Count; j++)
+            collisions.Add((_balls[i], _balls[j]));
+
+        if (_nodes != null)
+          foreach (var node in _nodes)
+            collisions.AddRange(node.GetPotentialCollisions());
+
+        return collisions;
+      }
+    }
+
+    private void Subdivide()
+    {
+      double halfWidth = _bounds.Width / 2;
+      double halfHeight = _bounds.Height / 2;
+
+      _nodes = new QuadTree[]
+      {
+            new QuadTree(new Rectangle(_bounds.X, _bounds.Y, halfWidth, halfHeight), _maxBallsPerNode),
+            new QuadTree(new Rectangle(_bounds.X + halfWidth, _bounds.Y, halfWidth, halfHeight), _maxBallsPerNode),
+            new QuadTree(new Rectangle(_bounds.X, _bounds.Y + halfHeight, halfWidth, halfHeight), _maxBallsPerNode),
+            new QuadTree(new Rectangle(_bounds.X + halfWidth, _bounds.Y + halfHeight, halfWidth, halfHeight), _maxBallsPerNode)
+      };
+    }
+
+    private void RedistributeBalls()
+    {
+      foreach (var ball in _balls.ToList())
+      {
+        int index = GetIndex(ball.Position);
+        if (index != -1)
+        {
+          _nodes[index].Insert(ball);
+          _balls.Remove(ball);
+        }
+      }
+    }
+
+    private int GetIndex(IVector position)
+    {
+      if (_nodes == null) return -1;
+
+      bool top = position.y < _bounds.Y + _bounds.Height / 2;
+      bool left = position.x < _bounds.X + _bounds.Width / 2;
+
+      if (left)
+        return top ? 0 : 2;
+      else
+        return top ? 1 : 3;
+    }
+
+    private void Remove(Ball ball)
+    {
+      _balls.Remove(ball);
+      if (_nodes != null)
+        foreach (var node in _nodes)
+          node.Remove(ball);
+    }
+  }
+
+  public struct Rectangle
+  {
+    public double X { get; }
+    public double Y { get; }
+    public double Width { get; }
+    public double Height { get; }
+
+    public Rectangle(double x, double y, double width, double height)
+    {
+      X = x;
+      Y = y;
+      Width = width;
+      Height = height;
+    }
+
+    public bool Contains(IVector position)
+    {
+      return position.x >= X &&
+             position.x <= X + Width &&
+             position.y >= Y &&
+             position.y <= Y + Height;
+    }
   }
 }
