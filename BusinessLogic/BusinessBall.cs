@@ -12,9 +12,12 @@ namespace TP.ConcurrentProgramming.BusinessLogic
 {
   internal class Ball : IBall
   {
-    public Ball(Data.IBall ball)
+    public Ball(Data.IBall dataBall)
     {
-      ball.NewPositionNotification += RaisePositionChangeEvent;
+      _dataBall = dataBall;
+      dataBall.NewPositionNotification += (s, pos) =>
+        NewPositionNotification?.Invoke(this, new Position(pos.x, pos.y));
+      dataBall.NewVelocityNotification += HandleCollision;
     }
 
     #region IBall
@@ -26,11 +29,20 @@ namespace TP.ConcurrentProgramming.BusinessLogic
 
     #region private
 
+    private readonly Data.IBall _dataBall;
+    private readonly object _collisionLock = new();
+
     private void RaisePositionChangeEvent(object? sender, Data.IVector e)
     {
       NewPositionNotification?.Invoke(this, new Position(e.x, e.y));
     }
-
+    private void HandleCollision(object? sender, Data.IVector velocity)
+    {
+      lock (_collisionLock)
+      {
+        // Aktualizacja prędkości po kolizji
+      }
+    }
     #endregion private
   }
 }

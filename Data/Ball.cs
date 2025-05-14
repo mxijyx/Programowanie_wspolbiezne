@@ -14,10 +14,12 @@ namespace TP.ConcurrentProgramming.Data
   {
     #region ctor
 
-    internal Ball(Vector initialPosition, Vector initialVelocity)
+    internal Ball(Vector initialPosition, Vector initialVelocity, double initialMass)
     {
-      Position = initialPosition;
-      Velocity = initialVelocity;
+      _position = initialPosition;
+      _velocity = initialVelocity;
+      Mass = initialMass;
+      StartMovement();
     }
 
     #endregion ctor
@@ -26,69 +28,95 @@ namespace TP.ConcurrentProgramming.Data
 
     public event EventHandler<IVector>? NewPositionNotification;
     public event EventHandler<IVector>? NewVelocityNotification;
+    public event EventHandler<double>? DiameterChanged;
 
-    public IVector Velocity { get; private set; }
-    public static double Diameter { get; internal set; }
+    public IVector Velocity
+    {
+        get { lock (_syncRoot) return _velocity; }
+        private set { lock (_syncRoot) _velocity = (Vector)value; }
+    }
 
-    #endregion IBall
+    public IVector Position
+    {
+        get
+        {
+            lock (_syncRoot) return _position; 
+        }
+    }
 
-    #region private
+    public double Mass
+    {
+        get { lock (_syncRoot) return _mass; }
+        set
+        {
+            lock (_syncRoot)
+            {
+                if (Math.Abs(_mass - value) < double.Epsilon) return;
+                _mass = value;
+                Diameter = CalculateDiameter(value);
+            }
+            DiameterChanged?.Invoke(this, Diameter);
+        }
+    }
 
-    private Vector Position;
+    public double Diameter { get; internal set; }
+
+        #endregion IBall
+
+        #region private
+    private Vector _position;
+    private Vector _velocity;
+    private double _mass;
+    private readonly object _syncRoot = new();
+    private bool _isMoving = true;
 
     private void RaiseNewPositionChangeNotification()
     {
-      NewPositionNotification?.Invoke(this, Position);
+      NewPositionNotification?.Invoke(this, _position);
     }
 
-    internal void Move(double diameter, double boardWidth, double boardHeight)
+    private async void StartMovement()
     {
-        double newX = Position.x + Velocity.x;
-        double newY = Position.y + Velocity.y;
+        await Task.Run(() =>
+        {
+            while (_isMoving)
+            {
+                UpdatePosition();
+                Thread.Sleep(16); // ~60 FPS
+            }
+        });
+    }
 
-        if (newX <= 0)
-        {
-            newX = 0;
-            Velocity = new Vector(Math.Abs(Velocity.x), Velocity.y);
-        }
-        else if (newX + diameter >= boardWidth)
-        {
-            newX = boardWidth - diameter;
-            Velocity = new Vector(-Math.Abs(Velocity.x), Velocity.y);
-        }
+    private void UpdatePosition()
+    {
+        var newPosition = new Vector(
+            _position.x + _velocity.x,
+            _position.y + _velocity.y
+        );
 
-        if (newY <= 0)
-        {
-            newY = 0;
-            Velocity = new Vector(Velocity.x, Math.Abs(Velocity.y));
-        }
-        else if (newY + diameter >= boardHeight)
-        {
-            newY = boardHeight - diameter;
-            Velocity = new Vector(Velocity.x, -Math.Abs(Velocity.y));
-        }
-
-        Position = new Vector(newX, newY);
-        RaiseNewPositionChangeNotification();
+        _position = newPosition;
+        NewPositionNotification?.Invoke(this, _position);
     }
 
         public void SetVelocity(double x, double y)
-    { 
-        Velocity = new Vector(x, y);
-        NewVelocityNotification?.Invoke(this, Velocity);
-    }
+        { 
+            Velocity = new Vector(x, y);
+            NewVelocityNotification?.Invoke(this, Velocity);
+        }
+
 
         #endregion private
+        public void Stop() => _isMoving = false;
+        private static double CalculateDiameter(double mass) => 20.0 * Math.Sqrt(mass);
         #region Skalowanie
-        public static event EventHandler<double>? DiameterChanged;
 
         internal void ScalePosition(double scaleX, double scaleY)
         {
-            Position = new Vector(Position.x * scaleX, Position.y * scaleY);
+            _position = new Vector(_position.x * scaleX, _position.y * scaleY);
             RaiseNewPositionChangeNotification();
         }
 
-        internal static void ScaleDiameter(double scale)
+        internal void ScaleDiameter(double scale)
         {
             double newDiameter = Diameter * scale;
             Diameter = newDiameter;
