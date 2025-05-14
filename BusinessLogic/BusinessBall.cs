@@ -35,16 +35,16 @@ namespace TP.ConcurrentProgramming.BusinessLogic
     private readonly Data.IBall _dataBall;
     private readonly object _collisionLock = new();
 
-        public IVector Velocity => throw new NotImplementedException();
+    public IVector Velocity => _dataBall.Velocity;
 
-        public IVector Position => throw new NotImplementedException();
+    public IVector Position => _dataBall.Position;
 
-        public double Diameter => throw new NotImplementedException();
+    public double Diameter => _dataBall.Diameter;
 
-        private void RaisePositionChangeEvent(object? sender, Data.IVector e)
+    private void RaisePositionChangeEvent(object? sender, Data.IVector e)
     {
-            NewPositionNotification?.Invoke(this, e);
-            }
+      NewPositionNotification?.Invoke(this, e);
+    }
     private void HandleCollision(object? sender, Data.IVector velocity)
     {
       lock (_collisionLock)

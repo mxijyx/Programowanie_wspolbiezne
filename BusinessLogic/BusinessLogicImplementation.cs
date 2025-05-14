@@ -165,19 +165,22 @@ namespace TP.ConcurrentProgramming.BusinessLogic
         }
 
         private void CheckWallCollision(Ball ball, double boardWidth, double boardHeight, double borderThickness)
-    {
-
+        {
+          lock (_collisionLock)
+          {
             if (ball.Position.x <= 0 || ball.Position.x >= boardWidth - ball.Diameter - borderThickness)
             {
-                ball.SetVelocity(-ball.Velocity.x, ball.Velocity.y);
+              ball.SetVelocity(-ball.Velocity.x, ball.Velocity.y);
             }
 
             if (ball.Position.y <= 0 || ball.Position.y >= boardHeight - ball.Diameter - borderThickness)
             {
-                ball.SetVelocity(ball.Velocity.x, -ball.Velocity.y);
+              ball.SetVelocity(ball.Velocity.x, -ball.Velocity.y);
             }
 
             //notify()?
+          }
+
         }
 
     public void Dispose() => _isRunning = false;
