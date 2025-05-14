@@ -131,8 +131,12 @@ namespace TP.ConcurrentProgramming.Data
         }
         public void SetVelocity(double x, double y)
         {
-            Velocity = new Vector(x, y);
-            NewVelocityNotification?.Invoke(this, Velocity);
+            lock (_syncRoot)
+            {
+                _velocity = new Vector(x, y);
+                Velocity = new Vector(x, y);
+                NewVelocityNotification?.Invoke(this, Velocity);
+            }
         }
     }
 }

@@ -68,6 +68,8 @@ namespace TP.ConcurrentProgramming.Data
         event EventHandler<IVector> NewPositionNotification;
         event EventHandler<double> DiameterChanged;
         void SetVelocity(double x, double y); // spójność danych! 
+        void SetPosition(double x, double y);
+
         //wątki tworzymy według threadcreation.cs
         //taski nie są wymagane 
         //średnicy masy kuli też nie trzeba brać 

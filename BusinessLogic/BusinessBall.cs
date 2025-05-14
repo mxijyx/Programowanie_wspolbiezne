@@ -53,14 +53,14 @@ namespace TP.ConcurrentProgramming.BusinessLogic
       }
     }
 
-        public double SetVelocity(double x, double y)
+        public void SetVelocity(double x, double y)
         {
-            throw new NotImplementedException();
+            _dataBall.SetVelocity(x, y);
         }
 
-        public double SetPosition(double x, double y)
+        public void SetPosition(double x, double y)
         {
-            throw new NotImplementedException();
+            _dataBall.SetPosition(x, y);
         }
         #endregion private
     }
