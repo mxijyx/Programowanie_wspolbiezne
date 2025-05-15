@@ -81,8 +81,8 @@ namespace TP.ConcurrentProgramming.Data
         );
 
         var velocity = new Vector(
-          (random.NextDouble() - 0.5) * 5,
-          (random.NextDouble() - 0.5) * 5
+          (random.NextDouble() - 0.5) * 5 + 0.5,
+          (random.NextDouble() - 0.5) * 5 +0.5
         );
 
         var ball = new Ball(position, velocity, mass);

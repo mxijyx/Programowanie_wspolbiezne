@@ -109,7 +109,7 @@ namespace TP.ConcurrentProgramming.BusinessLogic
     private Size _areaSize;
     private readonly Timer _collisionCheckTimer;
 
-    public CollisionManager(int width = 3000, int height = 1500)
+    public CollisionManager(int width = 800, int height = 600)
     {
       _areaSize = new Size(width, height);
       RebuildTree();
@@ -205,20 +205,26 @@ namespace TP.ConcurrentProgramming.BusinessLogic
         (float)(b.Velocity.y - a.Velocity.y)
       );
 
-      float impulse = Vector2.Dot(relativeVelocity, normal);
-      if (impulse > 0) return; // Kolizja już się rozwiązuje
+      float velocityAlongNormal = Vector2.Dot(relativeVelocity, normal);
 
-      float restitution = 0.8f; // Współczynnik restytucji (mniej niż 1 dla tłumienia)
-      float j = -(1 + restitution) * impulse / (1 / (float)a.Mass + 1 / (float)b.Mass);
+      if (velocityAlongNormal > 0) 
+        return; // Już się oddalają
+
+      float m1 = (float)a.Mass;
+      float m2 = (float)b.Mass;
+
+      float impulseMagnitude = (2 * velocityAlongNormal) / (m1 + m2);
+
+      Vector2 impulse = impulseMagnitude * normal;
 
       a.SetVelocity(
-        a.Velocity.x - (j * normal.X) / (float)a.Mass,
-        a.Velocity.y - (j * normal.Y) / (float)a.Mass
+        a.Velocity.x + impulse.X * m2,
+        a.Velocity.y + impulse.Y * m2
       );
 
       b.SetVelocity(
-        b.Velocity.x + (j * normal.X) / (float)b.Mass,
-        b.Velocity.y + (j * normal.Y) / (float)b.Mass
+        b.Velocity.x - impulse.X * m1,
+        b.Velocity.y - impulse.Y * m1
       );
     }
 
@@ -240,18 +246,25 @@ namespace TP.ConcurrentProgramming.BusinessLogic
 
   internal class QuadTree
   {
+
+    #region private
     private readonly Rectangle _bounds;
     private readonly int _maxBallsPerNode;
     private readonly List<Ball> _balls = new();
     private QuadTree[] _nodes;
     private readonly object _lock = new();
 
+    #endregion
+
+    #region ctor
     public QuadTree(Rectangle bounds, int maxBallsPerNode)
     {
       _bounds = bounds;
       _maxBallsPerNode = maxBallsPerNode;
     }
+    #endregion
 
+    #region public
     public void Insert(Ball ball)
     {
       lock (_lock)
@@ -279,11 +292,8 @@ namespace TP.ConcurrentProgramming.BusinessLogic
     {
       lock (_lock)
       {
-        if (!_bounds.Contains(ball.Position))
-        {
-          Remove(ball);
-          Insert(ball);
-        }
+        Remove(ball);
+        Insert(ball);
       }
     }
 
@@ -294,16 +304,30 @@ namespace TP.ConcurrentProgramming.BusinessLogic
         var collisions = new List<(Ball, Ball)>();
 
         for (int i = 0; i < _balls.Count; i++)
+        {
           for (int j = i + 1; j < _balls.Count; j++)
+          {
             collisions.Add((_balls[i], _balls[j]));
+          }
+            
+        }
 
         if (_nodes != null)
+        {
           foreach (var node in _nodes)
+          {
             collisions.AddRange(node.GetPotentialCollisions());
+          }
+        }
+          
 
         return collisions;
       }
     }
+
+
+    #endregion
+
 
     private void Subdivide()
     {
@@ -340,17 +364,26 @@ namespace TP.ConcurrentProgramming.BusinessLogic
       bool left = position.x < _bounds.X + _bounds.Width / 2;
 
       if (left)
+      {
         return top ? 0 : 2;
+      }
       else
+      {
         return top ? 1 : 3;
+      }
     }
 
     private void Remove(Ball ball)
     {
       _balls.Remove(ball);
       if (_nodes != null)
+      {
         foreach (var node in _nodes)
+        {
           node.Remove(ball);
+        }
+      }
+        
     }
   }
 

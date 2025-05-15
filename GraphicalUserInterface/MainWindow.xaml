@@ -10,7 +10,7 @@
         <vm:MainWindowViewModel />
     </Window.DataContext>
         <Grid>
-            <Border x:Name="GameBorder" BorderThickness="4" BorderBrush="Green" Margin="211,10,270,128" ClipToBounds="True">
+        <Border x:Name="GameBorder" BorderThickness="4" BorderBrush="Green" Margin="211,10,60,10" ClipToBounds="True">
                 <ItemsControl ItemsSource="{Binding Balls}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
