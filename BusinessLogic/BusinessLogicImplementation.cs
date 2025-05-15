@@ -102,7 +102,7 @@ namespace TP.ConcurrentProgramming.BusinessLogic
 
   internal class CollisionManager : IDisposable
   {
-    private const int MaxBallsPerNode = 4;
+    private const int MaxBallsPerNode = 1000;
     private readonly object _treeLock = new();
     private QuadTree _quadTree;
     private bool _isRunning = true;
@@ -113,7 +113,7 @@ namespace TP.ConcurrentProgramming.BusinessLogic
     {
       _areaSize = new Size(width, height);
       RebuildTree();
-      _collisionCheckTimer = new Timer(_ => CheckCollisions(), null, 0, 16);
+      _collisionCheckTimer = new Timer(_ => CheckCollisions(), null, 0, 1);
     }
 
     public void RegisterBall(Ball ball)
@@ -133,6 +133,7 @@ namespace TP.ConcurrentProgramming.BusinessLogic
         lock (_treeLock)
         {
           _quadTree.Update(ball);
+          HandleWallCollision(ball);
         }
 
         await Task.Delay(10);
@@ -160,6 +161,35 @@ namespace TP.ConcurrentProgramming.BusinessLogic
       double dy = a.Position.y - b.Position.y;
       double distance = Math.Sqrt(dx * dx + dy * dy);
       return distance < (a.Diameter / 2 + b.Diameter / 2);
+    }
+
+    private void HandleWallCollision(Ball ball)
+    {
+      double radius = ball.Diameter / 2;
+
+      // Lewa ściana
+      if (ball.Position.x - radius <= 0 && ball.Velocity.x < 0)
+      {
+        ball.SetVelocity(-ball.Velocity.x, ball.Velocity.y);
+      }
+
+      // Prawa ściana
+      if (ball.Position.x + radius >= _areaSize.Width && ball.Velocity.x > 0)
+      {
+        ball.SetVelocity(-ball.Velocity.x, ball.Velocity.y);
+      }
+
+      // Górna ściana
+      if (ball.Position.y - radius <= 0 && ball.Velocity.y < 0)
+      {
+        ball.SetVelocity(ball.Velocity.x, -ball.Velocity.y);
+      }
+
+      // Dolna ściana
+      if (ball.Position.y + radius >= _areaSize.Height && ball.Velocity.y > 0)
+      {
+        ball.SetVelocity(ball.Velocity.x, -ball.Velocity.y);
+      }
     }
 
     private void ResolveCollision(Ball a, Ball b)

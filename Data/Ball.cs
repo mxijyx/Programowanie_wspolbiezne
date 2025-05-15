@@ -62,8 +62,8 @@ namespace TP.ConcurrentProgramming.Data
         }
 
         public double Diameter { get; internal set; }
-        public double BoardWidth { get; set; } = 800; 
-        public double BoardHeight { get; set; } = 600;
+        public double BoardWidth { get; set; } = 800; //To wywalić todo
+        public double BoardHeight { get; set; } = 600; // To też todo
 
         #endregion IBall
 
@@ -95,25 +95,10 @@ namespace TP.ConcurrentProgramming.Data
         {
             lock (_syncRoot)
             {
-                double newX = _position.x + _velocity.x;
-                double newY = _position.y + _velocity.y;
-
-                if (newX <= 0 || newX >= BoardWidth - Diameter)
-                {
-                    _velocity = new Vector(-_velocity.x, _velocity.y);
-                    newX = Math.Clamp(newX, 0, BoardWidth - Diameter);
-                }
-
-                if (newY <= 0 || newY >= BoardHeight - Diameter)
-                {
-                    _velocity = new Vector(_velocity.x, -_velocity.y);
-                    newY = Math.Clamp(newY, 0, BoardHeight - Diameter);
-                }
-
-                _position = new Vector(newX, newY);
+                _position = new Vector(_position.x + _velocity.x, _position.y + _velocity.y);
             }
 
-            NewPositionNotification?.Invoke(this, _position);
+            RaiseNewPositionChangeNotification();
         }
 
 
