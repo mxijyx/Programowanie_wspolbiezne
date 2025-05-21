@@ -17,17 +17,18 @@ namespace TP.ConcurrentProgramming.Data
   internal class DataImplementation : DataAbstractAPI
   {
     #region ctor
-    //public DataImplementation()
-    //{
+        /*
+    public DataImplementation()
+    {
       //MoveTimer = new Timer(Move, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(16)); //krok w terminologii programowania - przechodzenie z instrukcji do instrukcji 
                                                                                        // timer wywołuje Move sekwencyjnie, a Move też jest sekwencyjne -> czyli i timer i funkcja Move jest nieporzebna?
                                                                                        // cykl odświeżania musi zależeć od prędkość kuli - czas odświeżania musi być mniejszy dla szybszych kul-> to musi być przy getterze velocity -> dlatgeo timer jest bez sensu
                                                                                        // data musi pozostać abstrakcyjne 
                                                                                        //TODO: do usunięcia
-      //BoardWidth = 800;
-      //BoardHeight = 600;
+      BoardWidth = 800;
+      BoardHeight = 600;
 
-    //}
+    }*/
 
         #endregion ctor
 
@@ -56,18 +57,6 @@ namespace TP.ConcurrentProgramming.Data
                 upperLayerHandler(ball.Position, ball);
             }
         }
-
-        /*
-    public override void Start(int numberOfBalls, Action<IVector, IBall> upperLayerHandler)
-    {
-      var balls = CreateBalls(numberOfBalls, BoardWidth, BoardHeight);
-
-      foreach (var ball in balls)
-      {
-        upperLayerHandler(ball.Position, ball);
-      }
-    }
-    
 
     public override void SetCanvasSize(double width, double height)
     {
@@ -155,8 +144,8 @@ namespace TP.ConcurrentProgramming.Data
     private Random RandomGenerator = new();
     private readonly ConcurrentBag<Ball> BallsList = new();
 
-    //public override double BoardWidth { get; set; } = 800;
-    //public override double BoardHeight { get; set; } = 600; //TODO: check if these fit the layer 
+    public override double BoardWidth { get; set; } = 800;
+    public override double BoardHeight { get; set; } = 600; //TODO: check if these fit the layer 
 
 
     #endregion private

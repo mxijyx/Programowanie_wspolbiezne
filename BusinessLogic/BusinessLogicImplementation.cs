@@ -8,7 +8,6 @@
 //
 //_____________________________________________________________________________________________________________________________________
 
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using TP.ConcurrentProgramming.Data;
 using UnderneathLayerAPI = TP.ConcurrentProgramming.Data.DataAbstractAPI;
@@ -42,7 +41,7 @@ namespace TP.ConcurrentProgramming.BusinessLogic
             Disposed = true;
         }
 
-        public override void Start(int numberOfBalls, Action<IVector, IBall> upperLayerHandler, double tw, double th, double border)
+        public override void Start(int numberOfBalls, Action<IPosition, IBall> upperLayerHandler, double tw, double th, double border)
         {
             if (Disposed)
                 throw new ObjectDisposedException(nameof(BusinessLogicImplementation));
@@ -54,11 +53,11 @@ namespace TP.ConcurrentProgramming.BusinessLogic
                 var logicBall = new Ball(dataBall, ballsList, tw, th, border);
                 _collisionManager.RegisterBall(logicBall);
                 _balls.TryAdd(dataBall, logicBall);
-                upperLayerHandler(pos, logicBall);
+                upperLayerHandler(new Position(pos.x, pos.y), logicBall);
             });
         }
 
-        /*public override void SetCanvasSize(double width, double height)
+        public override void SetCanvasSize(double width, double height)
         {
             if (Disposed)
                 throw new ObjectDisposedException(nameof(BusinessLogicImplementation));
@@ -67,7 +66,7 @@ namespace TP.ConcurrentProgramming.BusinessLogic
 
             double borderThickness = 10.0; // Możesz zmienić lub pobrać dynamicznie
             _collisionManager.SetCanvasSize(width, height, borderThickness);
-        }*/
+        }
 
         #endregion BusinessLogicAbstractAPI
 
@@ -77,7 +76,7 @@ namespace TP.ConcurrentProgramming.BusinessLogic
 
         private readonly UnderneathLayerAPI layerBellow;
         private readonly CollisionManager _collisionManager;
-        private readonly ConcurrentDictionary<Data.IBall, Ball> _balls = new();
+        //private readonly ConcurrentDictionary<Data.IBall, Ball> _balls = new();
 
         #endregion private
 

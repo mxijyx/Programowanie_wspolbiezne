@@ -24,10 +24,10 @@ namespace TP.ConcurrentProgramming.Data
     #region public API
 
     public abstract void Start(int numberOfBalls, Action<IVector, IBall> upperLayerHandler);  
-    //public abstract double BoardWidth { get; set; }
-    //public abstract double BoardHeight { get; set; }
+    public abstract double BoardWidth { get; set; }
+    public abstract double BoardHeight { get; set; }
         
-    //public abstract void SetCanvasSize(double width, double height);
+    public abstract void SetCanvasSize(double width, double height);
     //public abstract List<IBall> CreateBalls(int count, double boardWidth, double boardHeight, double minMass, double maxMass);
 
     #endregion public API

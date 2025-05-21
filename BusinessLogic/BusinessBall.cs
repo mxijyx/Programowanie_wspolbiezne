@@ -48,13 +48,13 @@ namespace TP.ConcurrentProgramming.BusinessLogic
         //Stop()
 
         //private readonly Data.IBall _dataBall;
-        //private readonly object _collisionLock = new();
+        private readonly object _collisionLock = new();
 
-        //public IVector Velocity => _dataBall.Velocity;
+        public IVector Velocity => _dataBall.Velocity;
 
-        //public IPosition Position => _dataBall.Position;
+        public IPosition Position => _dataBall.Position;
 
-        //public double Diameter => _dataBall.Diameter;
+        public double Diameter => _dataBall.Diameter;
 
         private void RaisePositionChangeEvent(object? sender, Data.IVector e)
         {
