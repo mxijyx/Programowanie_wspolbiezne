@@ -42,7 +42,7 @@ namespace TP.ConcurrentProgramming.BusinessLogic
             Disposed = true;
         }
 
-        public override void Start(int numberOfBalls, Action<IVector, IBall> upperLayerHandler)
+        public override void Start(int numberOfBalls, Action<IVector, IBall> upperLayerHandler, double tw, double th, double border)
         {
             if (Disposed)
                 throw new ObjectDisposedException(nameof(BusinessLogicImplementation));
@@ -51,14 +51,14 @@ namespace TP.ConcurrentProgramming.BusinessLogic
 
             layerBellow.Start(numberOfBalls, (pos, dataBall) =>
             {
-                var logicBall = new Ball(dataBall);
+                var logicBall = new Ball(dataBall, ballsList, tw, th, border);
                 _collisionManager.RegisterBall(logicBall);
                 _balls.TryAdd(dataBall, logicBall);
                 upperLayerHandler(pos, logicBall);
             });
         }
 
-        public override void SetCanvasSize(double width, double height)
+        /*public override void SetCanvasSize(double width, double height)
         {
             if (Disposed)
                 throw new ObjectDisposedException(nameof(BusinessLogicImplementation));
@@ -67,7 +67,7 @@ namespace TP.ConcurrentProgramming.BusinessLogic
 
             double borderThickness = 10.0; // Możesz zmienić lub pobrać dynamicznie
             _collisionManager.SetCanvasSize(width, height, borderThickness);
-        }
+        }*/
 
         #endregion BusinessLogicAbstractAPI
 

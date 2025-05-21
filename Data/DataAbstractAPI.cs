@@ -8,8 +8,6 @@
 //
 //_____________________________________________________________________________________________________________________________________
 
-using System.Collections.Concurrent;
-
 namespace TP.ConcurrentProgramming.Data
 {
   public abstract class DataAbstractAPI : IDisposable
@@ -26,11 +24,11 @@ namespace TP.ConcurrentProgramming.Data
     #region public API
 
     public abstract void Start(int numberOfBalls, Action<IVector, IBall> upperLayerHandler);  
-    public abstract double BoardWidth { get; set; }
-    public abstract double BoardHeight { get; set; }
+    //public abstract double BoardWidth { get; set; }
+    //public abstract double BoardHeight { get; set; }
         
-    public abstract void SetCanvasSize(double width, double height);
-    public abstract List<IBall> CreateBalls(int count, double boardWidth, double boardHeight, double minMass, double maxMass);
+    //public abstract void SetCanvasSize(double width, double height);
+    //public abstract List<IBall> CreateBalls(int count, double boardWidth, double boardHeight, double minMass, double maxMass);
 
     #endregion public API
 
@@ -59,14 +57,20 @@ namespace TP.ConcurrentProgramming.Data
     /// </summary>
     double y { get; init; }
   }
+    
+    public interface IPosition
+    {
+        double x { get; set; }
+        double y { get; set; }
+    }
 
-  public interface IBall
+    public interface IBall
   {
         // add instead of velocity setter according to the seminar SetVelocity(double velocity); -> chyba zrobione 
         // = tu nie można nic usunac ani dostawić 
         event EventHandler<IVector> NewVelocityNotification;
         event EventHandler<IVector> NewPositionNotification;
-        event EventHandler<double> DiameterChanged;
+        //event EventHandler<double> DiameterChanged;
         void SetVelocity(double x, double y); // spójność danych! 
         void SetPosition(double x, double y);
 
@@ -75,9 +79,11 @@ namespace TP.ConcurrentProgramming.Data
         //średnicy masy kuli też nie trzeba brać 
         //jeśli stąd coś wyeksportujemy to musimy to uzasadnić - dlatego tu już lepiej NIC NIE ZMIENIAĆ -> ROZWIĄZAUJEMY PROBLEM PRZEZ DANE IMMUTABLE NP. REKORD 
 
-        IVector Velocity { get; }
+        //czy to w ogóle potrzebne?
+        IVector Velocity { get; } //TODO: dodaj private set
         IVector Position { get; }
         double Mass { get; set; } 
-        double Diameter { get; } 
+        double Diameter { get; }
+        public void Stop();
   }
 }
