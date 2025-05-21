@@ -1,6 +1,6 @@
 ﻿
 
-namespace TP.ConcurrentProgramming.Data
+namespace TP.ConcurrentProgramming.BusinessLogic
 {
     public class Position : IPosition
     {
