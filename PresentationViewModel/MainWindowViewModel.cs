@@ -9,139 +9,149 @@
 
 using System;
 using System.Collections.ObjectModel;
+using System.Windows.Input;
 using TP.ConcurrentProgramming.Presentation.Model;
 using TP.ConcurrentProgramming.Presentation.ViewModel.MVVMLight;
 using ModelIBall = TP.ConcurrentProgramming.Presentation.Model.IBall;
 
 namespace TP.ConcurrentProgramming.Presentation.ViewModel
 {
-  public class MainWindowViewModel : ViewModelBase, IDisposable
-  {
-    #region ctor
-
-    public MainWindowViewModel() : this(null)
-    { }
-
-    private String numberOfBalls = "";
-    public RelayCommand StartCommand { get; }
-    public RelayCommand StopCommand { get; }
-
-    public String _numberOfBalls
+    public class MainWindowViewModel : ViewModelBase, IDisposable
     {
-        get => numberOfBalls;
-        set
-        {
-          numberOfBalls = value;
-          RaisePropertyChanged();
-        }
-    }
-        private double windowWidth;
-        public double WindowWidth
-        {
-            get => windowWidth;
-            set
-            {
-                windowWidth = value;
-                RaisePropertyChanged();
-                ModelLayer.BoardWidth = value;
-            }
-        }
-        private double windowHeight;
-        public double WindowHeight
-        {
-            get => windowHeight;
-            set
-            {
-                windowHeight = value;
-                RaisePropertyChanged();
-                ModelLayer.BoardHeight = value;
-            }
-        }
-    internal MainWindowViewModel(ModelAbstractApi modelLayerAPI)
-    {
-      ModelLayer = modelLayerAPI == null ? ModelAbstractApi.CreateModel() : modelLayerAPI;
-      Observer = ModelLayer.Subscribe<ModelIBall>(x => Balls.Add(x));
-      StartCommand = new RelayCommand(Start);
-      StopCommand = new RelayCommand(Stop);
+        #region ctor
 
-      WindowWidth = 800;
-      WindowHeight = 600;
+        public MainWindowViewModel() : this(null)
+        {
+            SetBallsCommand = new RelayCommand(SetBalls, CanSetBalls);
+        }
 
-      ModelLayer.SetCanvasSize(WindowWidth, WindowHeight);
-    }
+        internal MainWindowViewModel(ModelAbstractApi modelLayerAPI)
+        {
+            ModelLayer = modelLayerAPI == null ? ModelAbstractApi.CreateModel() : modelLayerAPI;
+            Observer = ModelLayer.Subscribe<ModelIBall>(x => Balls.Add(x));
+            SetBallsCommand = new RelayCommand(SetBalls, CanSetBalls);
+        }
 
         #endregion ctor
 
+        #region Properties
+        private bool BallsSetted = false;
+
+        private string _ballCountInput;
+        public string BallCountInput
+        {
+            get => _ballCountInput;
+            set
+            {
+                if (Set(ref _ballCountInput, value))
+                {
+                    (SetBallsCommand as RelayCommand)?.RaiseCanExecuteChanged();
+                }
+            }
+        }
+        private int BallCount => int.TryParse(BallCountInput, out int result) ? result : 0;
+
+        private double _borderWidth;
+        public double BorderWidth
+        {
+            get => _borderWidth;
+            set => Set(ref _borderWidth, value);
+        }
+
+        private double _borderHeight;
+        public double BorderHeight
+        {
+            get => _borderHeight;
+            set => Set(ref _borderHeight, value);
+        }
+
+        private double _borderPadding;
+        public double BorderPadding
+        {
+            get => _borderPadding;
+            set => Set(ref _borderPadding, value);
+        }
+        #endregion
+
         #region public API
-        public void Start()
+
+        public void Start(int numberOfBalls)
         {
             if (Disposed)
                 throw new ObjectDisposedException(nameof(MainWindowViewModel));
-            if (int.TryParse(this.numberOfBalls, out int ballsCount))
+            ModelLayer.Start(numberOfBalls, BorderWidth, BorderHeight, BorderPadding);
+            Observer.Dispose();
+
+
+        }
+
+        public ObservableCollection<ModelIBall> Balls { get; } = new ObservableCollection<ModelIBall>();
+
+        #endregion public API
+
+        #region Commands
+        public ICommand SetBallsCommand { get; }
+        public double WindowWidth { get; set; }
+        public double WindowHeight { get; set; }
+
+        private void SetBalls()
+        {
+            if (Disposed)
+                throw new ObjectDisposedException(nameof(MainWindowViewModel));
+
+            Balls.Clear();
+            this.Start(BallCount);
+            BallsSetted = true;
+        }
+        private bool CanSetBalls()
+        {
+            if (!BallsSetted)
             {
-                Balls.Clear();
-                ModelLayer.Start(ballsCount);
+                if (!int.TryParse(BallCountInput, out int parsedValue))
+                    return false;
+                return parsedValue > 0 && parsedValue <= 20;
+            }
+            return false;
+        }
+
+
+        #endregion
+
+        #region IDisposable
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!Disposed)
+            {
+                if (disposing)
+                {
+                    Balls.Clear();
+                    Observer.Dispose();
+                    ModelLayer.Dispose();
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+                // TODO: set large fields to null
+                Disposed = true;
             }
         }
 
-        public void Stop()
+        public void Dispose()
         {
-            Balls.Clear();
-        }
-        public ObservableCollection<ModelIBall> Balls { get; } = new ObservableCollection<ModelIBall>();
-
-        public void UpdateCanvasSize(double windowWidth, double windowHeight)
-        {
-          double marginLeft = 211;
-          double marginRight = 60;
-          double marginTop = 10;
-          double marginBottom = 10;
-
-          double borderThickness = 4;
-
-          double contentWidth = windowWidth - marginLeft - marginRight - (2 * borderThickness);
-          double contentHeight = windowHeight - marginTop - marginBottom - (2 * borderThickness);
-
-          ModelLayer.SetCanvasSize(contentWidth, contentHeight);
+            if (Disposed)
+                throw new ObjectDisposedException(nameof(MainWindowViewModel));
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
 
-#endregion public API
+        #endregion IDisposable
 
-    #region IDisposable
+        #region private
 
-    protected virtual void Dispose(bool disposing)
-    {
-      if (!Disposed)
-      {
-        if (disposing)
-        {
-          Balls.Clear();
-          Observer.Dispose();
-          ModelLayer.Dispose();
-        }
+        private IDisposable Observer = null;
+        private ModelAbstractApi ModelLayer;
+        private bool Disposed = false;
 
-        // TODO: free unmanaged resources (unmanaged objects) and override finalizer
-        // TODO: set large fields to null
-        Disposed = true;
-      }
+        #endregion private
     }
-
-    public void Dispose()
-    {
-      if (Disposed)
-        throw new ObjectDisposedException(nameof(MainWindowViewModel));
-      Dispose(disposing: true);
-      GC.SuppressFinalize(this);
-    }
-
-    #endregion IDisposable
-
-    #region private
-
-    private IDisposable Observer = null;
-    private ModelAbstractApi ModelLayer;
-    private bool Disposed = false;
-
-    #endregion private
-  }
 }

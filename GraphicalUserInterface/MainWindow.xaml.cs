@@ -27,18 +27,9 @@ namespace TP.ConcurrentProgramming.PresentationView
       double screenHeight = SystemParameters.PrimaryScreenHeight -20;
             this.Width = screenWidth;
             this.Height = screenHeight;
-            viewModel.WindowWidth = this.Width;
-            viewModel.WindowHeight = this.Height;
-
-            this.SizeChanged += (s, e) =>
-            {
-                viewModel.WindowWidth = this.Width;
-                viewModel.WindowHeight = this.Height;
-
-                viewModel.UpdateCanvasSize(Width, Height);
-            };
-
-            viewModel.Start();
+            viewModel.WindowWidth = this.Width/2;
+            viewModel.WindowHeight = this.Height/2;
+            viewModel.BorderWidth = 4;
     }
 
     /// <summary>
