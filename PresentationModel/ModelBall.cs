@@ -9,96 +9,101 @@
 //  by introducing yourself and telling us what you do with this community.
 //_____________________________________________________________________________________________________________________________________
 
+using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using TP.ConcurrentProgramming.Data;
+using TP.ConcurrentProgramming.BusinessLogic;
 using LogicIBall = TP.ConcurrentProgramming.BusinessLogic.IBall;
 
 namespace TP.ConcurrentProgramming.Presentation.Model
 {
-  internal class ModelBall : IBall
-  {
-    public ModelBall(double top, double left, LogicIBall underneathBall)
+    internal class ModelBall : IBall
     {
-      TopBackingField = top;
-      LeftBackingField = left;
-      _diameter = 20.0;
+        public double _borderWidth;
+        public double _borderHeight;
+        public double _borderPadding;
+        public ModelBall(double top, double left, LogicIBall underneathBall, double borderWidth, double borderHeight, double borderPadding)
+        {
+            _borderWidth = borderWidth;
+            _borderHeight = borderHeight;
+            _borderPadding = borderPadding;
+            TopBackingField = top;
+            LeftBackingField = left;
+            underneathBall.NewPositionNotification += NewPositionNotification;
 
-      underneathBall.NewPositionNotification += NewPositionNotification;
-      underneathBall.DiameterChanged += (sender, newDiameter) => Diameter = newDiameter;
-    }
+        }
 
-    #region IBall
+        #region IBall
 
-    public double Top
-    {
-      get => TopBackingField;
-      private set
-      {
-        if (TopBackingField == value)
-          return;
-        TopBackingField = value;
-        RaisePropertyChanged();
-      }
-    }
+        public double Top
+        {
+            get { return TopBackingField; }
+            private set
+            {
+                double maxTop = _borderHeight - Diameter - 2 * _borderPadding;
+                double clampedValue = Math.Clamp(value, 0, maxTop);
+                if (TopBackingField == clampedValue)
+                {
+                    return;
+                }
+                TopBackingField = clampedValue;
+                RaisePropertyChanged();
+            }
+        }
+        public double Left
+        {
+            get { return LeftBackingField; }
+            private set
+            {
+                double maxLeft = _borderWidth - Diameter - 2 * _borderPadding;
+                double clampedValue = Math.Clamp(value, 0, maxLeft);
+                if (LeftBackingField == clampedValue)
+                {
+                    return;
+                }
+                LeftBackingField = clampedValue;
+                RaisePropertyChanged();
+            }
+        }
 
-    public double Left
-    {
-      get => LeftBackingField;
-      private set
-      {
-        if (LeftBackingField == value)
-          return;
-        LeftBackingField = value;
-        RaisePropertyChanged();
-      }
-    }
+        public double Diameter { get; init; } = 0;
 
-    public double Diameter
-    {
-      get => _diameter;
-      set
-      {
-        if (_diameter == value)
-          return;
-        _diameter = value;
-        RaisePropertyChanged();
-      }
-    }
 
-    public event PropertyChangedEventHandler? PropertyChanged;
+        #region INotifyPropertyChanged
 
-    #endregion IBall
+        public event PropertyChangedEventHandler PropertyChanged;
 
-    #region private
+        #endregion INotifyPropertyChanged
 
-    private double TopBackingField;
-    private double LeftBackingField;
-    private double _diameter;
+        #endregion IBall
 
-    private void NewPositionNotification(object? sender, IVector e)
-    {
-      Top = e.y;
-      Left = e.x;
-    }
+        #region private
 
-    private void RaisePropertyChanged([CallerMemberName] string propertyName = "")
-    {
-      PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
+        private double TopBackingField;
+        private double LeftBackingField;
 
-    #endregion private
+        private void NewPositionNotification(object sender, IPosition e)
+        {
+            Top = e.y; Left = e.x;
+        }
 
-    #region testing instrumentation
+        private void RaisePropertyChanged([CallerMemberName] string propertyName = "")
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
 
-    [Conditional("DEBUG")]
-    internal void SetLeft(double x)
-    { Left = x; }
+        #endregion private
 
-    [Conditional("DEBUG")]
-    internal void SetTop(double x)
-    { Top = x; }
+        #region testing instrumentation
+
+        [Conditional("DEBUG")]
+        internal void SetLeft(double x)
+        { Left = x; }
+
+        [Conditional("DEBUG")]
+        internal void SettTop(double x)
+        { Top = x; }
 
         #endregion testing instrumentation
     }

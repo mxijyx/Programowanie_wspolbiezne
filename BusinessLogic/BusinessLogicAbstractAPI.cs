@@ -8,61 +8,61 @@
 //
 //_____________________________________________________________________________________________________________________________________
 
-using TP.ConcurrentProgramming.Data;
-
 namespace TP.ConcurrentProgramming.BusinessLogic
 {
-  public abstract class BusinessLogicAbstractAPI : IDisposable
-  {
-    #region Layer Factory
-
-    public static BusinessLogicAbstractAPI GetBusinessLogicLayer()
+    public abstract class BusinessLogicAbstractAPI : IDisposable
     {
-      return modelInstance.Value;
-    }
+        #region Layer Factory
 
-    #endregion Layer Factory
+        public static BusinessLogicAbstractAPI GetBusinessLogicLayer()
+        {
+            return modelInstance.Value;
+        }
 
-    #region Layer API
+        #endregion Layer Factory
 
-    public static readonly Dimensions GetDimensions = new(10.0, 10.0, 10.0);
+        #region Layer API
 
-    public abstract void Start(int numberOfBalls, Action<IVector, IBall> upperLayerHandler);
+        public static readonly Dimensions GetDimensions = new(10.0, 10.0, 10.0);
 
-    public abstract void SetCanvasSize(double width, double height);
+        public abstract void Start(int numberOfBalls, Action<IPosition, IBall> upperLayerHandler, double width, double height, double border);
 
         #region IDisposable
 
         public abstract void Dispose();
 
-    #endregion IDisposable
+        #endregion IDisposable
 
-    #endregion Layer API
+        #endregion Layer API
 
-    #region private
+        #region private
 
-    private static Lazy<BusinessLogicAbstractAPI> modelInstance = new Lazy<BusinessLogicAbstractAPI>(() => new BusinessLogicImplementation());
+        private static Lazy<BusinessLogicAbstractAPI> modelInstance = new Lazy<BusinessLogicAbstractAPI>(() => new BusinessLogicImplementation());
 
-    #endregion private
-  }
-  /// <summary>
-  /// Immutable type representing table dimensions
-  /// </summary>
-  /// <param name="BallDimension"></param>
-  /// <param name="TableHeight"></param>
-  /// <param name="TableWidth"></param>
-  /// <remarks>
-  /// Must be abstract
-  /// </remarks>
-  public record Dimensions(double BallDimension, double TableHeight, double TableWidth);
+        #endregion private
+    }
+    /// <summary>
+    /// Immutable type representing table dimensions
+    /// </summary>
+    /// <param name="BallDimension"></param>
+    /// <param name="TableHeight"></param>
+    /// <param name="TableWidth"></param>
+    /// <remarks>
+    /// Must be abstract
+    /// </remarks>
+    public record Dimensions(double BallDimension, double TableHeight, double TableWidth);
 
-  public interface IBall 
-  {
-    event EventHandler<IVector> NewPositionNotification;
-    event EventHandler<double> DiameterChanged;
+    public interface IPosition
+    {
+        double x { get; init; }
+        double y { get; init; }
+    }
 
-        IVector Velocity { get; }
-        IVector Position { get; }
-        double Diameter { get; }
+    public interface IBall
+    {
+        double TableWidth { get; }
+        double TableHeight { get; }
+        double TableBorder { get; }
+        event EventHandler<IPosition> NewPositionNotification;
     }
 }

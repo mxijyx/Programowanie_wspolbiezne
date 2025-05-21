@@ -10,44 +10,27 @@
 
 namespace TP.ConcurrentProgramming.Data.Test
 {
-  [TestClass]
-  public class BallUnitTest
-  {
-    [TestMethod]
-    public void ConstructorTestMethod()
+    [TestClass]
+    public class BallUnitTest
     {
-      Vector testinVector = new Vector(0.0, 0.0);
-      Ball newInstance = new(testinVector, testinVector, 5);
-    }
-
-    [TestMethod]
-    public void MoveAtZeroVelocityTestMethod()
-    {
-      Vector initialPosition = new(10.0, 10.0);
-      Ball newInstance = new(initialPosition, new Vector(0.0, 0.0), 5);
-      IVector currentPosition = initialPosition;
-      newInstance.NewPositionNotification += (sender, position) => currentPosition = position;
-      //newInstance.Move(20, 400); 
-      Assert.AreEqual<IVector>(initialPosition, currentPosition);
-    }
-     [TestMethod]
-        public void Move_xVelocityReverseTestMethod()
+        [TestMethod]
+        public void ConstructorTestMethod()
         {
-            Vector initialPosition = new(370, 10.0); 
-            Ball newInstance = new(initialPosition, new Vector(10.0, 0.0), 5);
-            //newInstance.Move(20, 400); 
-            Vector vector = new(-10.0, 0.0);
-            Assert.AreEqual<IVector>(vector, newInstance.Velocity);
-        }
-     [TestMethod]
-        public void Move_yVelocityReverseTestMethod()
-        {
-            Vector initialPosition = new(10.0, 390); 
-            Ball newInstance = new(initialPosition, new Vector(0.0, 10.0), 5);
-            //newInstance.Move(20, 400);
-            Vector vector = new(0.0, -10.0);
-            Assert.AreEqual<IVector>(vector, newInstance.Velocity);
+            Vector testinVector = new Vector(0.0, 0.0);
+            Ball newInstance = new(testinVector, testinVector, 20, 20);
         }
 
+        [TestMethod]
+        public void MoveTestMethod()
+        {
+            Vector initialPosition = new(10.0, 10.0);
+            Ball newInstance = new(initialPosition, new Vector(0.0, 0.0), 20, 20);
+            IVector curentPosition = new Vector(0.0, 0.0);
+            int numberOfCallBackCalled = 0;
+            newInstance.NewPositionNotification += (sender, position) => { Assert.IsNotNull(sender); curentPosition = position; numberOfCallBackCalled++; };
+            Thread.Sleep(150);
+            Assert.IsTrue(numberOfCallBackCalled > 0);
+            Assert.AreEqual<IVector>(initialPosition, curentPosition);
+        }
     }
 }

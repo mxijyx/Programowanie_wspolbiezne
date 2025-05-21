@@ -9,151 +9,96 @@
 //_____________________________________________________________________________________________________________________________________
 
 using System;
-using System.Collections.Concurrent;
 using System.Diagnostics;
 
 namespace TP.ConcurrentProgramming.Data
 {
-  internal class DataImplementation : DataAbstractAPI
-  {
-    #region ctor
-    public DataImplementation()
+    internal class DataImplementation : DataAbstractAPI
     {
-      //MoveTimer = new Timer(Move, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(16)); //krok w terminologii programowania - przechodzenie z instrukcji do instrukcji 
-                                                                                       // timer wywołuje Move sekwencyjnie, a Move też jest sekwencyjne -> czyli i timer i funkcja Move jest nieporzebna?
-                                                                                       // cykl odświeżania musi zależeć od prędkość kuli - czas odświeżania musi być mniejszy dla szybszych kul-> to musi być przy getterze velocity -> dlatgeo timer jest bez sensu
-                                                                                       // data musi pozostać abstrakcyjne 
-                                                                                       //TODO: do usunięcia
-      BoardWidth = 800;
-      BoardHeight = 600;
+        #region ctor
 
-    }
+        //public DataImplementation()
+        //{
+        //  MoveTimer = new Timer(Move, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(100));
+        //}
 
-    #endregion ctor
+        #endregion ctor
 
-    #region DataAbstractAPI
+        #region DataAbstractAPI
 
-    public override void Start(int numberOfBalls, Action<IVector, IBall> upperLayerHandler)
-    {
-      var balls = CreateBalls(numberOfBalls, BoardWidth, BoardHeight);
-
-      foreach (var ball in balls)
-      {
-        upperLayerHandler(ball.Position, ball);
-      }
-    }
-    
-
-    public override void SetCanvasSize(double width, double height)
-    {
-      {
-        double scaleX = width / BoardWidth;
-        double scaleY = height / BoardHeight;
-
-        foreach (Ball ball in BallsList)
+        public override void Start(int numberOfBalls, Action<IVector, IBall> upperLayerHandler)
         {
-          ball.ScalePosition(scaleX, scaleY);
+            if (Disposed)
+                throw new ObjectDisposedException(nameof(DataImplementation));
+            if (upperLayerHandler == null)
+                throw new ArgumentNullException(nameof(upperLayerHandler));
+            Random random = new Random();
+            for (int i = 0; i < numberOfBalls; i++)
+            {
+                Vector startingPosition = new(random.Next(100, 400 - 100), random.Next(100, 400 - 100));
+                Vector startingSpeed = new(random.Next(-25, 30), random.Next(-25, 30));
+                Ball newBall = new(startingPosition, startingSpeed, 100, 20);
+                upperLayerHandler(startingPosition, newBall);
+                BallsList.Add(newBall);
+            }
         }
-        BoardWidth = width;
-        BoardHeight = height;
-      }
-    }
 
-    public override List<IBall> CreateBalls(int count, double boardWidth, double boardHeight, double minMass = 0.5, double maxMass = 2.0)
-    {
-      var random = new Random();
-      var balls = new List<IBall>();
+        #endregion DataAbstractAPI
 
-      for (int i = 0; i < count; i++)
-      {
-        // Losowanie masy z zakresu
-        var mass = minMass + (maxMass - minMass) * random.NextDouble();
+        #region IDisposable
 
-        var position = new Vector(
-          random.NextDouble() * (boardWidth - 20), // 20 to minimalna średnica
-          random.NextDouble() * (boardHeight - 20)
-        );
-
-        var velocity = new Vector(
-          (random.NextDouble() - 0.5) * 5,
-          (random.NextDouble() - 0.5) * 5
-        );
-
-        var ball = new Ball(position, velocity, mass);
-        balls.Add(ball);
-        BallsList.Add(ball);
-
-      }
-
-      return balls;
-    }
-    #endregion DataAbstractAPI
-
-    #region IDisposable
-
-    protected virtual void Dispose(bool disposing)
-    {
-      if (!Disposed)
-      {
-        if (disposing)
+        protected virtual void Dispose(bool disposing)
         {
-          //MoveTimer.Dispose();
-          foreach (var ball in BallsList)
-          {
-            ball.Stop();
-          }
-          BallsList.Clear();
+            if (!Disposed)
+            {
+                if (disposing)
+                {
+                    BallsList.Clear();
+                }
+                Disposed = true;
+            }
+            else
+                throw new ObjectDisposedException(nameof(DataImplementation));
         }
-        Disposed = true;
-      }
-      else
-        throw new ObjectDisposedException(nameof(DataImplementation));
+
+        public override void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+
+        #endregion IDisposable
+
+        #region private
+
+        private bool Disposed = false;
+
+        private Random RandomGenerator = new();
+        private List<Ball> BallsList = [];
+
+
+        #endregion private
+
+        #region TestingInfrastructure
+
+        [Conditional("DEBUG")]
+        internal void CheckBallsList(Action<IEnumerable<IBall>> returnBallsList)
+        {
+            returnBallsList(BallsList);
+        }
+
+        [Conditional("DEBUG")]
+        internal void CheckNumberOfBalls(Action<int> returnNumberOfBalls)
+        {
+            returnNumberOfBalls(BallsList.Count);
+        }
+
+        [Conditional("DEBUG")]
+        internal void CheckObjectDisposed(Action<bool> returnInstanceDisposed)
+        {
+            returnInstanceDisposed(Disposed);
+        }
+
+        #endregion TestingInfrastructure
     }
-
-    public override void Dispose()
-    {
-      // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-      Dispose(disposing: true);
-      GC.SuppressFinalize(this);
-    }
-
-    #endregion IDisposable
-
-    #region private
-
-    //private bool disposedValue;
-    private bool Disposed = false;
-
-    private readonly Timer MoveTimer;
-    private Random RandomGenerator = new();
-    private readonly ConcurrentBag<Ball> BallsList = new();
-
-    public override double BoardWidth { get; set; } = 800;
-    public override double BoardHeight { get; set; } = 600; //TODO: check if these fit the layer 
-
-
-    #endregion private
-
-    #region TestingInfrastructure
-
-    [Conditional("DEBUG")]
-    internal void CheckBallsList(Action<IEnumerable<IBall>> returnBallsList)
-    {
-      returnBallsList(BallsList);
-    }
-
-    [Conditional("DEBUG")]
-    internal void CheckNumberOfBalls(Action<int> returnNumberOfBalls)
-    {
-      returnNumberOfBalls(BallsList.Count);
-    }
-
-    [Conditional("DEBUG")]
-    internal void CheckObjectDisposed(Action<bool> returnInstanceDisposed)
-    {
-      returnInstanceDisposed(Disposed);
-    }
-
-    #endregion TestingInfrastructure
-  }
 }
