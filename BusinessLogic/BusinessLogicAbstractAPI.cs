@@ -8,8 +8,6 @@
 //
 //_____________________________________________________________________________________________________________________________________
 
-using TP.ConcurrentProgramming.Data;
-
 namespace TP.ConcurrentProgramming.BusinessLogic
 {
     public abstract class BusinessLogicAbstractAPI : IDisposable
@@ -27,9 +25,7 @@ namespace TP.ConcurrentProgramming.BusinessLogic
 
         public static readonly Dimensions GetDimensions = new(10.0, 10.0, 10.0);
 
-        public abstract void Start(int numberOfBalls, Action<IVector, IBall> upperLayerHandler);
-
-        //public abstract void SetCanvasSize(double width, double height);
+        public abstract void Start(int numberOfBalls, Action<IPosition, IBall> upperLayerHandler, double width, double height, double border);
 
         #region IDisposable
 
@@ -56,23 +52,17 @@ namespace TP.ConcurrentProgramming.BusinessLogic
     /// </remarks>
     public record Dimensions(double BallDimension, double TableHeight, double TableWidth);
 
+    public interface IPosition
+    {
+        double x { get; init; }
+        double y { get; init; }
+    }
+
     public interface IBall
     {
-        event EventHandler<IPosition> NewPositionNotification;
-        //event EventHandler<double> DiameterChanged;
-
-        //IVector Velocity { get; }
-        //IVector Position { get; }
-        //double Diameter { get; }
-
         double TableWidth { get; }
         double TableHeight { get; }
         double TableBorder { get; }
-    }
-    public interface IPosition
-    {
-        double X { get; init; }
-        double Y { get; init; }
-
+        event EventHandler<IPosition> NewPositionNotification;
     }
 }

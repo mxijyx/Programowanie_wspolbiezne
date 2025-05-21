@@ -9,6 +9,7 @@
 //_____________________________________________________________________________________________________________________________________
 
 using System.Diagnostics;
+using System.Numerics;
 using TP.ConcurrentProgramming.Data;
 using UnderneathLayerAPI = TP.ConcurrentProgramming.Data.DataAbstractAPI;
 
@@ -24,7 +25,6 @@ namespace TP.ConcurrentProgramming.BusinessLogic
         internal BusinessLogicImplementation(UnderneathLayerAPI? underneathLayer)
         {
             layerBellow = underneathLayer == null ? UnderneathLayerAPI.GetDataLayer() : underneathLayer;
-            _collisionManager = new CollisionManager();
         }
 
         #endregion ctor
@@ -35,48 +35,35 @@ namespace TP.ConcurrentProgramming.BusinessLogic
         {
             if (Disposed)
                 throw new ObjectDisposedException(nameof(BusinessLogicImplementation));
-
+            foreach (var ball in ballList)
+            {
+                ball.Stop();
+            }
             layerBellow.Dispose();
-            _collisionManager.Dispose();
             Disposed = true;
         }
 
-        public override void Start(int numberOfBalls, Action<IPosition, IBall> upperLayerHandler, double tw, double th, double border)
+        public override void Start(int numberOfBalls, Action<IPosition, IBall> upperLayerHandler, double width, double height, double border)
         {
             if (Disposed)
                 throw new ObjectDisposedException(nameof(BusinessLogicImplementation));
             if (upperLayerHandler == null)
                 throw new ArgumentNullException(nameof(upperLayerHandler));
-
-            layerBellow.Start(numberOfBalls, (pos, dataBall) =>
+            layerBellow.Start(numberOfBalls, (startingPosition, databall) =>
             {
-                var logicBall = new Ball(dataBall, ballsList, tw, th, border);
-                _collisionManager.RegisterBall(logicBall);
-                _balls.TryAdd(dataBall, logicBall);
-                upperLayerHandler(new Position(pos.x, pos.y), logicBall);
+                var ball = new Ball(databall, width, height, border, ballList);
+                ballList.Add(ball);
+                upperLayerHandler(new Position(startingPosition.x, startingPosition.y), ball);
             });
         }
 
-        public override void SetCanvasSize(double width, double height)
-        {
-            if (Disposed)
-                throw new ObjectDisposedException(nameof(BusinessLogicImplementation));
-
-            layerBellow.SetCanvasSize(width, height);
-
-            double borderThickness = 10.0; // Możesz zmienić lub pobrać dynamicznie
-            _collisionManager.SetCanvasSize(width, height, borderThickness);
-        }
-
-        #endregion BusinessLogicAbstractAPI
 
         #region private
 
         private bool Disposed = false;
+        private List<Ball> ballList = new List<Ball>();
 
         private readonly UnderneathLayerAPI layerBellow;
-        private readonly CollisionManager _collisionManager;
-        //private readonly ConcurrentDictionary<Data.IBall, Ball> _balls = new();
 
         #endregion private
 
@@ -89,126 +76,6 @@ namespace TP.ConcurrentProgramming.BusinessLogic
         }
 
         #endregion TestingInfrastructure
-    }
-
-    internal class CollisionManager : IDisposable
-    {
-        private readonly ConcurrentBag<Ball> _balls = new();
-        private readonly object _collisionLock = new();
-        private bool _isRunning = true;
-
-        private double _boardWidth;
-        private double _boardHeight;
-        private double _borderThickness;
-
-        public void SetCanvasSize(double width, double height, double borderThickness)
-        {
-            _boardWidth = width;
-            _boardHeight = height;
-            _borderThickness = borderThickness;
-        }
-
-        public void RegisterBall(Ball ball)
-        {
-            _balls.Add(ball);
-            Task.Run(() => DetectCollisions(ball));
-        }
-
-        private async void DetectCollisions(Ball ball)
-        {
-            while (_isRunning)
-            {
-                lock (_collisionLock)
-                {
-                    foreach (var other in _balls)
-                    {
-                        if (ball != other && CheckCollision(ball, other))
-                        {
-                            ResolveCollision(ball, other);
-                        }
-                    }
-
-                    CheckWallCollision(ball);
-                }
-
-                await Task.Delay(10);
-            }
-        }
-
-        private bool CheckCollision(Ball a, Ball b)
-        {
-            var dx = a.Position.x - b.Position.x;
-            var dy = a.Position.y - b.Position.y;
-            var distance = Math.Sqrt(dx * dx + dy * dy);
-            var radiusSum = (a.Diameter + b.Diameter) / 2;
-
-            return distance < radiusSum;
-        }
-
-        private void ResolveCollision(Ball a, Ball b)
-        {
-            var dx = b.Position.x - a.Position.x;
-            var dy = b.Position.y - a.Position.y;
-            var distance = Math.Sqrt(dx * dx + dy * dy);
-
-            if (distance == 0) return; // unikaj dzielenia przez zero
-
-            // Jednostkowy wektor kolizji
-            double nx = dx / distance;
-            double ny = dy / distance;
-
-            // Wektory prędkości
-            double vaX = a.Velocity.x;
-            double vaY = a.Velocity.y;
-            double vbX = b.Velocity.x;
-            double vbY = b.Velocity.y;
-
-            // Składowe prędkości wzdłuż kierunku zderzenia (iloczyn skalarny)
-            double vaNormal = vaX * nx + vaY * ny;
-            double vbNormal = vbX * nx + vbY * ny;
-
-            if (vaNormal >= vbNormal)
-                return; // kulki się oddalają – nie zderzają się
-
-            // Masa ~ średnica (zakładamy proporcjonalność)
-            double ma = a.Diameter;
-            double mb = b.Diameter;
-
-            // Nowe prędkości normalne po zderzeniu (elastyczne zderzenie)
-            double vaNormalAfter = (vaNormal * (ma - mb) + 2 * mb * vbNormal) / (ma + mb);
-            double vbNormalAfter = (vbNormal * (mb - ma) + 2 * ma * vaNormal) / (ma + mb);
-
-            // Zmiana prędkości wzdłuż kierunku kolizji
-            double dVaNormal = vaNormalAfter - vaNormal;
-            double dVbNormal = vbNormalAfter - vbNormal;
-
-            // Dodaj zmianę tylko w kierunku kolizji (reszta zostaje)
-            a.SetVelocity(vaX + dVaNormal * nx, vaY + dVaNormal * ny);
-            b.SetVelocity(vbX + dVbNormal * nx, vbY + dVbNormal * ny);
-
-            // Minimalne przesunięcie, żeby uniknąć "klejenia się"
-            double overlap = 0.5 * (a.Diameter / 2 + b.Diameter / 2 - distance + 0.1);
-            a.SetPosition(a.Position.x - overlap * nx, a.Position.y - overlap * ny);
-            b.SetPosition(b.Position.x + overlap * nx, b.Position.y + overlap * ny);
-        }
-
-
-        private void CheckWallCollision(Ball ball)
-        {
-            if (ball.Position.x <= 0 || ball.Position.x >= _boardWidth - ball.Diameter - _borderThickness)
-            {
-                ball.SetVelocity(-ball.Velocity.x, ball.Velocity.y);
-            }
-
-            if (ball.Position.y <= 0 || ball.Position.y >= _boardHeight - ball.Diameter - _borderThickness)
-            {
-                ball.SetVelocity(ball.Velocity.x, -ball.Velocity.y);
-            }
-        }
-
-        public void Dispose()
-        {
-            _isRunning = false;
-        }
+        #endregion BusinessLogicAbstractAPI
     }
 }

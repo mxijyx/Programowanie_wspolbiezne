@@ -8,21 +8,26 @@
 //
 //_____________________________________________________________________________________________________________________________________
 
-using System.Security.Cryptography.X509Certificates;
-
 namespace TP.ConcurrentProgramming.Data
 {
     internal class Ball : IBall
     {
+        private Vector position;
+        private Vector velocity;
+        private readonly object positionLock = new();
+        private readonly object velocityLock = new();
         #region ctor
 
-        internal Ball(Vector initialPosition, Vector initialVelocity, double initialMass, double diameter)
+        internal Ball(Vector initialPosition, Vector initialVelocity, double mass, double diameter)
         {
-            _position = initialPosition;
-            _velocity = initialVelocity;
-            Mass = initialMass;
+            position = initialPosition;
+            velocity = initialVelocity;
+            Mass = mass;
             Diameter = diameter;
-            StartMovement();
+            refreshTime = 20;
+            ThreadStart ts = new ThreadStart(threadLoop);
+            ballThread = new System.Threading.Thread(ts);
+            ballThread.Start();
         }
 
         #endregion ctor
@@ -30,114 +35,84 @@ namespace TP.ConcurrentProgramming.Data
         #region IBall
 
         public event EventHandler<IVector>? NewPositionNotification;
-        public event EventHandler<IVector>? NewVelocityNotification;
-        public event EventHandler<double>? DiameterChanged;
 
         public IVector Velocity
         {
-            get { lock (_syncRoot) return _velocity; }
-            private set { lock (_syncRoot) _velocity = (Vector)value; }
-        }
+            get
+            {
+                lock (velocityLock)
+                {
+                    return velocity;
+                }
+            }
+            set
+            {
+                lock (velocityLock)
+                {
+                    velocity = (Vector)value;
+                }
 
+            }
+        }
         public IVector Position
         {
             get
             {
-                lock (_syncRoot) return _position;
-            }
-        }
-
-        public double Mass
-        {
-            get { lock (_syncRoot) return _mass; }
-            set
-            {
-                lock (_syncRoot)
+                lock (positionLock)
                 {
-                    if (Math.Abs(_mass - value) < double.Epsilon) return;
-                    _mass = value;
-                    Diameter = CalculateDiameter(value);
+                    return position;
                 }
-                DiameterChanged?.Invoke(this, Diameter);
             }
         }
-
-        public double Diameter { get; internal set; }
-
+        public double Mass { get; }
+        public double Diameter { get; }
+        private int refreshTime;
         #endregion IBall
 
         #region private
-        private Vector _position;
-        private Vector _velocity;
-        private double _mass;
-        private readonly object _syncRoot = new();
-        private bool _isMoving = true;
+        private Thread ballThread;
+        private bool isRunning = true;
+
+
+        private void threadLoop()
+        {
+            while (isRunning)
+            {
+                Move();
+                Thread.Sleep(refreshTime);
+            }
+        }
+
+        public void Stop()
+        {
+            isRunning = false;
+        }
 
         private void RaiseNewPositionChangeNotification()
         {
-            NewPositionNotification?.Invoke(this, _position);
+            NewPositionNotification?.Invoke(this, Position);
+        }
+        private void ChangeRefreshTime()
+        {
+            double accualVelocity = Math.Sqrt(Velocity.x * Velocity.x + Velocity.y * Velocity.y);
+            int maxRefreshTime = 100;
+            int minRefreshTime = 10;
+
+            double normalizedVelocity = Math.Clamp(accualVelocity, 0.0, 1.0);
+            refreshTime = Math.Clamp((int)(maxRefreshTime - normalizedVelocity * (maxRefreshTime - minRefreshTime)), minRefreshTime, maxRefreshTime);
         }
 
-        private async void StartMovement()
+        private void Move()
         {
-            await Task.Run(() =>
+            ChangeRefreshTime();
+            lock (positionLock)
             {
-                while (_isMoving)
-                {
-                    UpdatePosition();
-                    Thread.Sleep(16); // ~60 FPS
-                }
-            });
+                position = new Vector(position.x + (Velocity.x * refreshTime / 1000), position.y + (Velocity.y * refreshTime / 1000));
+            }
+            RaiseNewPositionChangeNotification();
+
         }
-
-        private void UpdatePosition()
-        {
-            var newPosition = new Vector(
-                _position.x + _velocity.x,
-                _position.y + _velocity.y
-            );
-
-            _position = newPosition;
-            NewPositionNotification?.Invoke(this, _position);
-        }
-
 
         #endregion private
-        public void Stop() => _isMoving = false;
-        private static double CalculateDiameter(double mass) => 20.0 * Math.Sqrt(mass);
-        #region Skalowanie
-
-        internal void ScalePosition(double scaleX, double scaleY)
-        {
-            _position = new Vector(_position.x * scaleX, _position.y * scaleY);
-            RaiseNewPositionChangeNotification();
-        }
-
-        internal void ScaleDiameter(double scale)
-        {
-            double newDiameter = Diameter * scale;
-            Diameter = newDiameter;
-            DiameterChanged?.Invoke(null, newDiameter);
-        }
-        #endregion
-
-        public void SetPosition(double x, double y)
-        {
-            lock (_syncRoot)
-            {
-                _position = new Vector(x, y);
-                RaiseNewPositionChangeNotification();
-            }
-
-        }
-        public void SetVelocity(double x, double y)
-        {
-            lock (_syncRoot)
-            {
-                _velocity = new Vector(x, y);
-                Velocity = new Vector(x, y);
-                NewVelocityNotification?.Invoke(this, Velocity);
-            }
-        }
     }
 }

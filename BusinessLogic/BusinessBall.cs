@@ -8,130 +8,118 @@
 //
 //_____________________________________________________________________________________________________________________________________
 
-using System.Numerics;
+
 using TP.ConcurrentProgramming.Data;
 
 namespace TP.ConcurrentProgramming.BusinessLogic
 {
     internal class Ball : IBall
     {
-        public Ball(Data.IBall dataBall, List<Data.IBall> ballsList, double tWidth, double tHeight, double tBorder)
+        Data.IBall dataBall;
+        List<Ball> ballList = new List<Ball>();
+        private readonly object ballLock = new();
+
+        public Ball(Data.IBall ball, double w, double h, double border, List<Ball> otherBalls)
         {
-            dataBall.NewPositionNotification += RaisePositionChangeEvent;
-            dataBall.NewVelocityNotification += (sender, position) => HandleCollision(position, dataBall);
-            this.ballsList = ballsList;
-            TableWidth = tWidth;
-            TableHeight = tHeight;
-            TableBorder = tBorder;
+            dataBall = ball;
+            TableWidth = w;
+            TableHeight = h;
+            TableBorder = border;
+            ball.NewPositionNotification += RaisePositionChangeEvent;
+            ballList = otherBalls;
+
         }
 
         #region IBall
 
         public event EventHandler<IPosition>? NewPositionNotification;
-        //public event EventHandler<double>? DiameterChanged;
 
         #endregion IBall
 
         #region private
-        private readonly List<Data.IBall> ballsList;
-        private double TableWidth { get; }
-        private double TableHeight { get; }
-        private double TableBorder { get; }
+        public double TableWidth { get; }
+        public double TableHeight { get; }
+        public double TableBorder { get; }
 
-        //TODO: czy to powinno być powtarzane???
-        double IBall.TableWidth => TableWidth;
-
-        double IBall.TableHeight => TableHeight;
-
-        double IBall.TableBorder => TableBorder;
-
-        //Stop()
-
-        //private readonly Data.IBall _dataBall;
-        private readonly object _collisionLock = new();
-
-        public IVector Velocity => _dataBall.Velocity;
-
-        public IPosition Position => _dataBall.Position;
-
-        public double Diameter => _dataBall.Diameter;
+        internal void Stop()
+        {
+            dataBall.Stop();
+        }
 
         private void RaisePositionChangeEvent(object? sender, Data.IVector e)
         {
-            NewPositionNotification?.Invoke(this, new Position (e.x, e.y));
+            HandleWalls(e);
+            HandleBallCollisions();
+            NewPositionNotification?.Invoke(this, new Position(e.x, e.y));
         }
-        private void HandleCollision(IVector Position, Data.IBall _dataBall)
+        private void HandleWalls(Data.IVector position)
         {
-            bool lockTaken = false;
-            try
+            lock (ballLock)
             {
-                Monitor.Enter(this, ref lockTaken);
-                if (!lockTaken)
-                    throw new ArgumentException("Lock not taken");
-                bool bounceX = Position.x <= 0 || Position.x >= TableWidth - _dataBall.Diameter - 2 * TableBorder; //TODO: podaj prawidłowe wymiary
-                bool bounceY = Position.y <= 0 || (Position.y + _dataBall.Velocity.y) > TableHeight - _dataBall.Diameter - 2 * TableBorder; //TODO: podaj prawidłowe wymiary
-                if (bounceX)
+                if (position.x >= TableWidth - dataBall.Diameter - 2 * TableBorder || position.x <= 0)
                 {
-                    _dataBall.SetVelocity(-_dataBall.Velocity.x, _dataBall.Velocity.y);
+                    dataBall.Velocity.x = -dataBall.Velocity.x;
                 }
-                if (bounceY)
+                if (position.y >= TableHeight - dataBall.Diameter - 2 * TableBorder || position.y <= 0)
                 {
-                    _dataBall.SetVelocity(_dataBall.Velocity.x, -_dataBall.Velocity.y);
+                    dataBall.Velocity.y = -dataBall.Velocity.y;
                 }
-                foreach (Data.IBall other in ballsList)
+            }
+        }
+        private void HandleBallCollisions()
+        {
+
+            foreach (Ball other in ballList)
+            {
+                lock (ballLock)
                 {
                     if (other == this) continue;
 
+                    double dx = dataBall.Position.x - other.dataBall.Position.x;
+                    double dy = dataBall.Position.y - other.dataBall.Position.y;
+
+                    double distance = Math.Sqrt(dx * dx + dy * dy);
+                    double minDistance = (dataBall.Diameter + other.dataBall.Diameter) / 2;
+
+                    if (distance > 0 && distance <= minDistance)
                     {
-                        double dx = Position.x - other.Position.x;
-                        double dy = Position.y - other.Position.y;
 
-                        double distance = Math.Sqrt(dx * dx + dy * dy);
-                        double minDistance = (other.Diameter + _dataBall.Diameter) / 2;
+                        double nx = dx / distance;
+                        double ny = dy / distance;
 
-                        if (distance > 0 && distance <= minDistance)
+
+                        double vN = dataBall.Velocity.x * nx + dataBall.Velocity.y * ny;
+                        double vN2 = other.dataBall.Velocity.x * nx + other.dataBall.Velocity.y * ny;
+
+                        double m1 = dataBall.Mass;
+                        double m2 = other.dataBall.Mass;
+
+                        double vNp = (vN * (m1 - m2) + 2 * m2 * vN2) / (m1 + m2);
+                        double vN2p = (vN2 * (m2 - m1) + 2 * m1 * vN) / (m1 + m2);
+
+                        double tx = -ny;
+                        double ty = nx;
+                        double v1t = dataBall.Velocity.x * tx + dataBall.Velocity.y * ty;
+                        double v2t = other.dataBall.Velocity.x * tx + other.dataBall.Velocity.y * ty;
+
+                        dataBall.Velocity.x = vNp * nx + v1t * tx;
+                        dataBall.Velocity.y = vNp * ny + v1t * ty;
+                        other.dataBall.Velocity.x = vN2p * nx + v2t * tx;
+                        other.dataBall.Velocity.y = vN2p * ny + v2t * ty;
+
+                        double overlap = minDistance - distance;
+                        if (overlap > 0)
                         {
-                            double nx = dx / distance;
-                            double ny = dy / distance;
-
-                            double vN = _dataBall.Velocity.x * nx + _dataBall.Velocity.y * ny;
-                            double vN2 = other.Velocity.x * nx + other.Velocity.y * ny;
-
-                            double m1 = _dataBall.Mass;
-                            double m2 = other.Mass;
-
-                            double v1 = (vN * (m1 - m2) + 2 * m2 * vN2) / (m1 + m2);
-                            double v2 = (vN2 * (m2 - m1) + 2 * m1 * vN) / (m1 + m2);
-
-                            double tx = -ny;
-                            double ty = nx;
-
-                            double vTx1 = _dataBall.Velocity.x * tx + _dataBall.Velocity.y * ty;
-                            double vTx2 = other.Velocity.x * tx + other.Velocity.y * ty;
-
-                            _dataBall.SetVelocity(v1 * nx + vTx1 * tx, v1 * ny + vTx1 * ty);
-                            other.SetVelocity(v2 * nx + vTx2 * tx, v2 * ny + vTx2 * ty);
-
-                            double overlap = minDistance - distance;
-                            if (overlap > 0)
-                            {
-                                _dataBall.SetPosition(_dataBall.Position.x + nx * overlap / 2, _dataBall.Position.y + ny * overlap / 2);
-                                other.SetPosition(other.Position.x - nx * overlap / 2, other.Position.y - ny * overlap / 2);
-                            }
-
+                            dataBall.Position.x += nx * overlap/2;
+                            dataBall.Position.y += ny * overlap/2;
+                            other.dataBall.Position.x -= nx * overlap/2;
+                            other.dataBall.Position.y -= ny * overlap/2;
                         }
                     }
                 }
-            }
-            finally
-            {
-                if (lockTaken)
-                {
-                    Monitor.Exit(this);
-                }
+
+                #endregion private
             }
         }
-        #endregion private
-
     }
 }
