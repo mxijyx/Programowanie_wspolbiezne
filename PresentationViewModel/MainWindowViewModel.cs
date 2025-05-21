@@ -91,8 +91,6 @@ namespace TP.ConcurrentProgramming.Presentation.ViewModel
 
         #region Commands
         public ICommand SetBallsCommand { get; }
-        public double WindowWidth { get; set; }
-        public double WindowHeight { get; set; }
 
         private void SetBalls()
         {
