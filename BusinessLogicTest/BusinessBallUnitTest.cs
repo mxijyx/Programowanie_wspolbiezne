@@ -8,47 +8,76 @@
 //
 //_____________________________________________________________________________________________________________________________________
 
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using TP.ConcurrentProgramming.Data;
+using System;
+using System.Collections.Generic;
+
 namespace TP.ConcurrentProgramming.BusinessLogic.Test
 {
-  [TestClass]
-  public class BallUnitTest
-  {
-    [TestMethod]
-    public void MoveTestMethod()
+    [TestClass]
+    public class BallUnitTest
     {
-      DataBallFixture dataBallFixture = new DataBallFixture();
-      Ball newInstance = new(dataBallFixture);
-      int numberOfCallBackCalled = 0;
-      newInstance.NewPositionNotification += (sender, position) => { Assert.IsNotNull(sender); Assert.IsNotNull(position); numberOfCallBackCalled++; };
-      dataBallFixture.Move();
-      Assert.AreEqual<int>(1, numberOfCallBackCalled);
+        [TestMethod]
+        public void Move_ShouldTriggerNotificationAndUpdatePosition()
+        {
+            // Arrange
+            var dataBallFixture = new DataBallFixture();
+            var otherBalls = new List<Ball>(); // Przekazujemy pustą listę innych piłek
+            var ball = new Ball(dataBallFixture, 10, 10, 2, otherBalls);
+
+            int callbackCount = 0;
+            ball.NewPositionNotification += (sender, position) =>
+            {
+                Assert.IsNotNull(sender);
+                Assert.IsNotNull(position);
+                callbackCount++;
+            };
+
+            // Act
+            dataBallFixture.SimulateMovement();
+
+            // Assert
+            Assert.AreEqual(1, callbackCount, "Notification should be called once");
+            Assert.AreEqual(1, dataBallFixture.Position.x, "X position should be updated");
+            Assert.AreEqual(1, dataBallFixture.Position.y, "Y position should be updated");
+        }
+
+        #region testing instrumentation
+        private class DataBallFixture : Data.IBall
+        {
+            public Data.IVector Velocity { get; set; } = new VectorFixture(1, 1);
+            public Data.IVector Position { get; private set; } = new VectorFixture(0, 0);
+            public double Diameter => 2;
+            public double Mass => 1;
+
+            public event EventHandler<Data.IVector>? NewPositionNotification;
+
+            internal void SimulateMovement()
+            {
+                // Aktualizacja pozycji zgodnie z prędkością
+                Position = new VectorFixture(
+                    Position.x + Velocity.x,
+                    Position.y + Velocity.y
+                );
+
+                NewPositionNotification?.Invoke(this, Position);
+            }
+
+            public void Stop() { }
+        }
+
+        private class VectorFixture : Data.IVector
+        {
+            public double x { get; set; }
+            public double y { get; set; }
+
+            public VectorFixture(double x, double y)
+            {
+                this.x = x;
+                this.y = y;
+            }
+        }
+        #endregion
     }
-
-    #region testing instrumentation
-
-    private class DataBallFixture : Data.IBall
-    {
-      public Data.IVector Velocity { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-
-      public event EventHandler<Data.IVector>? NewPositionNotification;
-
-      internal void Move()
-      {
-        NewPositionNotification?.Invoke(this, new VectorFixture(0.0, 0.0));
-      }
-    }
-
-    private class VectorFixture : Data.IVector
-    {
-      internal VectorFixture(double X, double Y)
-      {
-        x = X; y = Y;
-      }
-
-      public double x { get; init; }
-      public double y { get; init; }
-    }
-
-    #endregion testing instrumentation
-  }
 }
