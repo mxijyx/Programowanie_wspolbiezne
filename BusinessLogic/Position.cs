@@ -15,4 +15,5 @@ namespace TP.ConcurrentProgramming.BusinessLogic
             y = YComponent;
         }
     }
-}
+} // do wyrzucenia
+

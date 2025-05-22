@@ -52,18 +52,18 @@ namespace TP.ConcurrentProgramming.Data
         /// </summary>
         double y { get; set; }
     }
-    public interface IPosition
-    {
-        double x { get; }
-        double y { get; }
-    }
+    //public interface IPosition
+    //{
+    //    double x { get; }
+    //    double y { get; }
+    //}
 
     public interface IBall
     {
         event EventHandler<IVector> NewPositionNotification;
         IVector Velocity { get; set; }
         IVector Position { get; }
-        double Diameter { get; }
+        double Diameter { get; } // te rzeczy (Mass i Diameter) są do wyrzucenia
         double Mass { get; }
         public void Stop();
 

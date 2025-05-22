@@ -71,9 +71,13 @@ namespace TP.ConcurrentProgramming.BusinessLogic
 
             foreach (Ball other in ballList)
             {
-                lock (ballLock)
-                {
+                //lock (ballLock) // czy to jest w ogóle potrzebne? ~dr Jak zaimplementować sekcję krytyczna, aby była skuteczna? Monitor!!!!! 
+                //{
                     if (other == this) continue;
+                    bool isLockTaken = false;
+                try 
+                { 
+                    Monitor.Enter(ballLock, ref isLockTaken);
 
                     double dx = dataBall.Position.x - other.dataBall.Position.x;
                     double dy = dataBall.Position.y - other.dataBall.Position.y;
@@ -115,6 +119,13 @@ namespace TP.ConcurrentProgramming.BusinessLogic
                             other.dataBall.Position.x -= nx * overlap/2;
                             other.dataBall.Position.y -= ny * overlap/2;
                         }
+                    }
+                }
+                finally
+                {
+                    if (isLockTaken)
+                    {
+                        Monitor.Exit(ballLock);
                     }
                 }
 

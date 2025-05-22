@@ -49,7 +49,7 @@ namespace TP.ConcurrentProgramming.Data
             {
                 lock (velocityLock)
                 {
-                    velocity = (Vector)value;
+                    velocity = (Vector)value; // tu nie powinno być rylko readonly // przełącza kontekst - zmniejsza wydajność 
                 }
 
             }
@@ -60,7 +60,7 @@ namespace TP.ConcurrentProgramming.Data
             {
                 lock (positionLock)
                 {
-                    return position;
+                    return position; // tak nie powinno być rylko readonly
                 }
             }
         }
@@ -79,7 +79,8 @@ namespace TP.ConcurrentProgramming.Data
             while (isRunning)
             {
                 Move();
-                Thread.Sleep(refreshTime);
+                Thread.Sleep(refreshTime); //tu msui być kalkulacja - niech move zwróci refreshtiem
+
             }
         }
 
@@ -99,7 +100,7 @@ namespace TP.ConcurrentProgramming.Data
             int minRefreshTime = 10;
 
             double normalizedVelocity = Math.Clamp(accualVelocity, 0.0, 1.0);
-            refreshTime = Math.Clamp((int)(maxRefreshTime - normalizedVelocity * (maxRefreshTime - minRefreshTime)), minRefreshTime, maxRefreshTime);
+            refreshTime = Math.Clamp((int)(maxRefreshTime - normalizedVelocity * (maxRefreshTime - minRefreshTime)), minRefreshTime, maxRefreshTime); //refresh time nie powinno być globalne tylko przekazywane przez parametr
         }
 
         private void Move()
