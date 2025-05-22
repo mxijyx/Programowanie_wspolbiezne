@@ -2,7 +2,7 @@
 
 namespace TP.ConcurrentProgramming.BusinessLogic
 {
-    public class Position : IPosition
+    public class Position : IPosition //co z tym zrobić? 
     {
         #region IPosition
         public double x { get; init; }

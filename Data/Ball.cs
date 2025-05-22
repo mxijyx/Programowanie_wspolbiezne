@@ -12,19 +12,15 @@ namespace TP.ConcurrentProgramming.Data
 {
     internal class Ball : IBall
     {
-        //private Vector position;
-        //private Vector velocity;
-        private readonly object positionLock = new();
-        private readonly object velocityLock = new();
         #region ctor
 
         internal Ball(Vector initialPosition, Vector initialVelocity, double mass, double diameter)
         {
             Position = initialPosition;
-            Velocity = initialVelocity;
+            Velocity = initialVelocity; // czy teraz są readonly?? no nie do końca - o co tu chodziło? 
             Mass = mass;
             Diameter = diameter;
-            refreshTime = 20;
+            //refreshTime = 20;
             ThreadStart ts = new ThreadStart(threadLoop);
             ballThread = new System.Threading.Thread(ts);
             ballThread.Start();
@@ -41,7 +37,7 @@ namespace TP.ConcurrentProgramming.Data
        
         public double Mass { get; }
         public double Diameter { get; }
-        private int refreshTime;
+        //private int refreshTime;
         #endregion IBall
 
         #region private
@@ -54,7 +50,7 @@ namespace TP.ConcurrentProgramming.Data
             while (isRunning)
             {
                 Move();
-                Thread.Sleep(refreshTime); //tu msui być kalkulacja - niech move zwróci refreshtiem
+                Thread.Sleep(RefreshTimeCalculator()); //tu msui być kalkulacja - niech move zwróci refreshtiem
 
             }
         }
@@ -68,20 +64,20 @@ namespace TP.ConcurrentProgramming.Data
         {
             NewPositionNotification?.Invoke(this, Position);
         }
-        private void ChangeRefreshTime()
+        private int RefreshTimeCalculator()
         {
             double accualVelocity = Math.Sqrt(Velocity.x * Velocity.x + Velocity.y * Velocity.y);
             int maxRefreshTime = 100;
             int minRefreshTime = 10;
 
             double normalizedVelocity = Math.Clamp(accualVelocity, 0.0, 1.0);
-            refreshTime = Math.Clamp((int)(maxRefreshTime - normalizedVelocity * (maxRefreshTime - minRefreshTime)), minRefreshTime, maxRefreshTime); //refresh time nie powinno być globalne tylko przekazywane przez parametr
+            return Math.Clamp((int)(maxRefreshTime - normalizedVelocity * (maxRefreshTime - minRefreshTime)), minRefreshTime, maxRefreshTime); //refresh time nie powinno być globalne tylko przekazywane przez parametr
         }
 
         private void Move()
         {
-            ChangeRefreshTime();
-            Position = new Vector(Position.x + (Velocity.x * refreshTime / 1000), Position.y + (Velocity.y * refreshTime / 1000));
+            int refreshTime = RefreshTimeCalculator();
+            Position = new Vector(Position.x + (Velocity.x * refreshTime / 1000), Position.y + (Velocity.y * refreshTime / 1000)); 
 
             RaiseNewPositionChangeNotification();
 
