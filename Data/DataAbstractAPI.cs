@@ -61,7 +61,7 @@ namespace TP.ConcurrentProgramming.Data
     public interface IBall
     {
         event EventHandler<IVector> NewPositionNotification;
-        IVector Velocity { get; set; }
+        IVector Velocity { get; }
         IVector Position { get; }
         double Diameter { get; } // te rzeczy (Mass i Diameter) są do wyrzucenia
         double Mass { get; }

@@ -21,7 +21,7 @@ namespace TP.ConcurrentProgramming.Data
         /// <summary>
         /// The X component of the vector.
         /// </summary>
-        public double x { get; set; }
+        public double x { get; set; } // czy tu musi być set? czy może tylko get???
         /// <summary>
         /// The Y component of the vector.
         /// </summary>

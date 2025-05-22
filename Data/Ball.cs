@@ -12,16 +12,16 @@ namespace TP.ConcurrentProgramming.Data
 {
     internal class Ball : IBall
     {
-        private Vector position;
-        private Vector velocity;
+        //private Vector position;
+        //private Vector velocity;
         private readonly object positionLock = new();
         private readonly object velocityLock = new();
         #region ctor
 
         internal Ball(Vector initialPosition, Vector initialVelocity, double mass, double diameter)
         {
-            position = initialPosition;
-            velocity = initialVelocity;
+            Position = initialPosition;
+            Velocity = initialVelocity;
             Mass = mass;
             Diameter = diameter;
             refreshTime = 20;
@@ -36,34 +36,9 @@ namespace TP.ConcurrentProgramming.Data
 
         public event EventHandler<IVector>? NewPositionNotification;
 
-        public IVector Velocity
-        {
-            get
-            {
-                lock (velocityLock)
-                {
-                    return velocity;
-                }
-            }
-            set
-            {
-                lock (velocityLock)
-                {
-                    velocity = (Vector)value; // tu nie powinno być rylko readonly // przełącza kontekst - zmniejsza wydajność 
-                }
-
-            }
-        }
-        public IVector Position
-        {
-            get
-            {
-                lock (positionLock)
-                {
-                    return position; // tak nie powinno być rylko readonly
-                }
-            }
-        }
+        public IVector Velocity { get; private set; }
+        public IVector Position { get; private set; }
+       
         public double Mass { get; }
         public double Diameter { get; }
         private int refreshTime;
@@ -106,10 +81,8 @@ namespace TP.ConcurrentProgramming.Data
         private void Move()
         {
             ChangeRefreshTime();
-            lock (positionLock)
-            {
-                position = new Vector(position.x + (Velocity.x * refreshTime / 1000), position.y + (Velocity.y * refreshTime / 1000));
-            }
+            Position = new Vector(Position.x + (Velocity.x * refreshTime / 1000), Position.y + (Velocity.y * refreshTime / 1000));
+
             RaiseNewPositionChangeNotification();
 
         }
