@@ -42,6 +42,7 @@ namespace TP.ConcurrentProgramming.BusinessLogic
                 ball.Stop();
             }
             layerBellow.Dispose();
+            Logger.Instance.Dispose();
             Disposed = true;
         }
 
@@ -188,8 +189,7 @@ namespace TP.ConcurrentProgramming.BusinessLogic
             }
 
             try
-            {
-                // Log without using ball.ID (since it does not exist)
+            { 
                 EnqueueLog(
                     $"Ball at ({ball.Position.x:F2}, {ball.Position.y:F2}) " +
                     $"Vel: ({ball.Velocity.x:F2}, {ball.Velocity.y:F2}) " +
@@ -211,7 +211,9 @@ namespace TP.ConcurrentProgramming.BusinessLogic
         public void Dispose()
         {
             _isRunning = false;
+            EnqueueLog("Program zakończono pomyślnie.", LogLevel.Info);
             EnqueueLog("Koniec dziennika zdarzeń", LogLevel.Debug);
+            
             _logQueue.CompleteAdding();
 
             // Poczekaj maksymalnie 3s na zakończenie wątku
