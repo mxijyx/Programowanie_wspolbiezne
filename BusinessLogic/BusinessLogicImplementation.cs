@@ -8,9 +8,10 @@
 //
 //_____________________________________________________________________________________________________________________________________
 
+using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Numerics;
 using System.IO;
+using System.Numerics;
 using TP.ConcurrentProgramming.Data;
 using UnderneathLayerAPI = TP.ConcurrentProgramming.Data.DataAbstractAPI;
 
@@ -83,76 +84,152 @@ namespace TP.ConcurrentProgramming.BusinessLogic
     }
 
     #region Logger
-    
-
     internal class Logger : ILogger, IDisposable
+    {
+        private readonly BlockingCollection<string> _logQueue = new BlockingCollection<string>();
+        private static readonly Lazy<Logger> _instance = new Lazy<Logger>(() => new Logger());
+        public static Logger Instance => _instance.Value;
+
+        private readonly Thread _processingThread;
+        private readonly string _logFilePath;
+        private volatile bool _isRunning = true;
+
+        public string LogPath => _logFilePath;
+
+        public Logger()
         {
-            private static readonly Lazy<Logger> _instance = new Lazy<Logger>(() =>
-            {
-                var logger = new Logger();
-                logger.Log("Zainicjalizowano logger pomyślnie.", LogLevel.Debug);
-                return logger;
-            });
-            public static Logger Instance => _instance.Value;
+            // Znajdź katalog repozytorium i utwórz folder logs
+            string? repoRoot = FindRepoRoot(AppDomain.CurrentDomain.BaseDirectory);
+            string logsDir = Path.Combine(repoRoot ?? AppDomain.CurrentDomain.BaseDirectory, "logs");
+            Directory.CreateDirectory(logsDir);
 
-            private readonly StreamWriter _writer;
-            private readonly object _lock = new();
+            // Wygeneruj unikalną nazwę pliku
+            string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            _logFilePath = Path.Combine(logsDir, $"log_{timestamp}.txt");
 
-            public Logger()
+            // Uruchom wątek przetwarzający
+            _processingThread = new Thread(ProcessLogQueue)
             {
-                string? repoDir = FindRepoRoot(AppDomain.CurrentDomain.BaseDirectory);
-                string logPath = Path.Combine(repoDir ?? AppDomain.CurrentDomain.BaseDirectory, "log.txt");
-                _writer = new StreamWriter(logPath, append: true) { AutoFlush = true };
-                Log($"Logger initialized, log file: {logPath}", LogLevel.Debug);
+                Name = "LogProcessorThread",
+                IsBackground = true,
+                Priority = ThreadPriority.BelowNormal // Niski priorytet, aby nie wpływać na kulki
+            };
+            _processingThread.Start();
+
+            // Pierwszy wpis w logu
+            EnqueueLog($"[Info] Logger initialized at {DateTime.Now:HH:mm:ss.fff}", LogLevel.Info);
+        }
+
+        private static string? FindRepoRoot(string startDir)
+        {
+            var dir = new DirectoryInfo(startDir);
+            while (dir != null)
+            {
+                if (Directory.Exists(Path.Combine(dir.FullName, ".git")))
+                    return dir.FullName;
+
+                if (dir.GetFiles("*.sln").Any())
+                    return dir.FullName;
+
+                dir = dir.Parent;
             }
+            return null;
+        }
 
-            private static string? FindRepoRoot(string startDir)
+        private void ProcessLogQueue()
+        {
+            using var writer = new StreamWriter(_logFilePath, append: true) { AutoFlush = true };
+
+            while (_isRunning || !_logQueue.IsCompleted)
             {
-                var dir = new DirectoryInfo(startDir);
-                while (dir != null)
+                try
                 {
-                    if (dir.GetDirectories(".git").Any() || dir.GetFiles("*.sln").Any())
-                        return dir.FullName;
-                    dir = dir.Parent;
+                    // Oczekuj max 1s na wiadomość
+                    if (_logQueue.TryTake(out var entry, TimeSpan.FromSeconds(1)))
+                    {
+                        writer.WriteLine(entry);
+                    }
                 }
-                return null;
-            }
-
-            public void Log(string message, LogLevel level = LogLevel.Info)
-            {
-                var logEntry = $"[{level}] {DateTime.Now:yyyy-MM-dd HH:mm:ss} - {message}";
-                lock (_lock)
+                catch (Exception ex)
                 {
-                    _writer.WriteLine(logEntry);
+                    Debug.WriteLine($"LOG PROCESSING ERROR: {ex.Message}");
                 }
             }
 
-            public void Log(Data.IBall ball, string message, LogLevel level = LogLevel.Info)
+            // Opróżnij resztę kolejki przed zamknięciem
+            while (_logQueue.TryTake(out var remainingEntry))
             {
-                if (ball == null)
-                    throw new ArgumentNullException(nameof(ball));
-                Log($"Kula na pozycji {ball.Position.x}, {ball.Position.y} o prędkości {ball.Velocity.x}, {ball.Velocity.y}: {message}", level);
-            }
-
-            public void Log(Data.IBall ball, string message)
-            {
-                Log(ball, message, LogLevel.Info);
-            }
-
-            public void Dispose()
-            {
-                _writer?.Dispose();
+                writer.WriteLine(remainingEntry);
             }
         }
 
-        internal enum LogLevel
+        private void EnqueueLog(string message, LogLevel level)
         {
-            Trace,
-            Debug,
-            Info,
-            Warning,
-            Error,
-            Critical
+            var entry = $"[{level}] {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - {message}";
+
+            if (!_logQueue.TryAdd(entry, millisecondsTimeout: 50))
+            {
+                // Jeśli kolejka jest pełna, odrzuć wpis (nie blokuj wątku wywołującego)
+                Debug.WriteLine("LOG QUEUE FULL - ENTRY DROPPED");
+            }
         }
+
+        public void Log(string message, LogLevel level = LogLevel.Info)
+        {
+            EnqueueLog(message, level);
+        }
+
+        public void Log(Data.IBall ball, string message, LogLevel level = LogLevel.Info)
+        {
+            if (ball == null)
+            {
+                EnqueueLog($"[Logger] Ball is null: {message}", LogLevel.Critical);
+                throw new NullReferenceException("Ball cannot be null");
+            }
+
+            try
+            {
+                // Log without using ball.ID (since it does not exist)
+                EnqueueLog(
+                    $"Ball at ({ball.Position.x:F2}, {ball.Position.y:F2}) " +
+                    $"Vel: ({ball.Velocity.x:F2}, {ball.Velocity.y:F2}) " +
+                    $"Diameter: {ball.Diameter:F2}: {message}",
+                    level
+                );
+            }
+            catch (Exception ex)
+            {
+                EnqueueLog($"[Logger] Exception logging ball info: {ex.Message}", LogLevel.Error);
+            }
+        }
+
+        public void Log(Data.IBall ball, string message)
+        {
+            Log(ball, message, LogLevel.Info);
+        }
+
+        public void Dispose()
+        {
+            _isRunning = false;
+            EnqueueLog("Koniec dziennika zdarzeń", LogLevel.Debug);
+            _logQueue.CompleteAdding();
+
+            // Poczekaj maksymalnie 3s na zakończenie wątku
+            if (!_processingThread.Join(TimeSpan.FromSeconds(3)))
+            {
+                Debug.WriteLine("Log thread did not terminate in time");
+            }
+        }
+    }
+
+    internal enum LogLevel
+    {
+        Trace,
+        Debug,
+        Info,
+        Warning,
+        Error,
+        Critical
+    }
     #endregion Logger
 }

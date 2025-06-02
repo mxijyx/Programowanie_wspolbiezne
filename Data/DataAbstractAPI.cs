@@ -65,6 +65,7 @@ namespace TP.ConcurrentProgramming.Data
         IVector Position { get; }
         double Diameter { get; } // te rzeczy (Mass i Diameter) są do wyrzucenia
         double Mass { get; }
+        
         public void Stop();
 
 
