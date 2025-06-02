@@ -8,7 +8,6 @@ namespace TP.ConcurrentProgramming.BusinessLogic
 {
     interface ILogger
     {
-        void Log(IBall ball, string message);
-        void Dispose();
+        void Log(Data.IBall ball, string message);
     }
 }

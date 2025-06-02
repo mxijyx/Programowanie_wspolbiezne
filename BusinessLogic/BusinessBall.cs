@@ -59,17 +59,19 @@ namespace TP.ConcurrentProgramming.BusinessLogic
                 if (position.x >= TableWidth - dataBall.Diameter - 2 * TableBorder || position.x <= 0)
                 {
                     dataBall.Velocity.x = -dataBall.Velocity.x;
+                    Logger.Instance.Log(dataBall, "Wykryto zderzenie z ścianą. Składowa X prędkości została odwrócona.", LogLevel.Info);
                 }
                 if (position.y >= TableHeight - dataBall.Diameter - 2 * TableBorder || position.y <= 0)
                 {
                     dataBall.Velocity.y = -dataBall.Velocity.y;
+                    Logger.Instance.Log(dataBall, "Wykryto zderzenie z ścianą. Składowa Y prędkości została odwrócona.", LogLevel.Info);
                 }
             }
         }
         private void HandleBallCollisions()
         {
 
-            foreach (Ball other in ballList)
+            foreach (Ball other in ballList.ToList())
             {
                 //lock (ballLock) // czy to jest w ogóle potrzebne? ~dr Jak zaimplementować sekcję krytyczna, aby była skuteczna? Monitor!!!!! 
                 //{
@@ -119,6 +121,13 @@ namespace TP.ConcurrentProgramming.BusinessLogic
                             other.dataBall.Position.x -= nx * overlap/2;
                             other.dataBall.Position.y -= ny * overlap/2;
                         }
+                        Logger.Instance.Log(
+                            $"Zderzenie kulek: " +
+                            $"Kulka1 [pos=({dataBall.Position.x:0.00}, {dataBall.Position.y:0.00}), vel=({dataBall.Velocity.x:0.00}, {dataBall.Velocity.y:0.00}), " +
+                            $"Kulka2 [pos=({other.dataBall.Position.x:0.00}, {other.dataBall.Position.y:0.00}), vel=({other.dataBall.Velocity.x:0.00}, {other.dataBall.Velocity.y:0.00}), " +
+                            $"dystans={distance:0.00}, minDystans={minDistance:0.00}",
+                            LogLevel.Info
+                        );
                     }
                 }
                 finally
