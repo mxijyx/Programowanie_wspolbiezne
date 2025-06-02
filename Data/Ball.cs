@@ -18,7 +18,7 @@ namespace TP.ConcurrentProgramming.Data
         {
             Position = initialPosition;
             Velocity = initialVelocity; // czy teraz są readonly?? no nie do końca - o co tu chodziło? 
-            Mass = mass;
+            Mass = mass; //ich się trzeba pozbyc???
             Diameter = diameter;
             //refreshTime = 20;
             ThreadStart ts = new ThreadStart(threadLoop);
