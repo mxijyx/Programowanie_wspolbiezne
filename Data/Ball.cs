@@ -8,81 +8,212 @@
 //
 //_____________________________________________________________________________________________________________________________________
 
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading;
+
 namespace TP.ConcurrentProgramming.Data
 {
-    internal class Ball : IBall
+    internal class Ball : IBall, IDisposable
     {
-        #region ctor
+        #region Fields
+        private Vector _velocity;
+        private Vector _position;
+
+        private readonly List<string> _diagnosticBuffer = new List<string>();
+        private readonly object _diagnosticLock = new object();
+
+        private readonly Thread _ballThread;
+        private volatile bool _isRunning = true;
+
+        private DateTime _lastUpdateTime;
+
+        #endregion
+
+        #region Constructor
 
         internal Ball(Vector initialPosition, Vector initialVelocity, double mass, double diameter)
         {
-            Position = initialPosition;
-            Velocity = initialVelocity; // czy teraz są readonly?? no nie do końca - o co tu chodziło? 
-            Mass = mass; //ich się trzeba pozbyc???
+            _position = new Vector(initialPosition.x, initialPosition.y);
+            _velocity = new Vector(initialVelocity.x, initialVelocity.y);
+            Mass = mass;
             Diameter = diameter;
-            //refreshTime = 20;
-            ThreadStart ts = new ThreadStart(threadLoop);
-            ballThread = new System.Threading.Thread(ts);
-            ballThread.Start();
+            _lastUpdateTime = DateTime.UtcNow;
+
+            _ballThread = new Thread(ThreadLoop)
+            {
+                Name = $"BallThread_{GetHashCode():X}",
+                IsBackground = true,
+                Priority = ThreadPriority.AboveNormal
+            };
+            _ballThread.Start();
         }
 
-        #endregion ctor
+        #endregion
 
-        #region IBall
+        #region IBall Implementation
 
         public event EventHandler<IVector>? NewPositionNotification;
 
-        public IVector Velocity { get; private set; }
-        public IVector Position { get; private set; }
-       
+        public IVector Velocity => new Vector(_velocity.x, _velocity.y);
+
+        public IVector Position => new Vector(_position.x, _position.y);
+
         public double Mass { get; }
         public double Diameter { get; }
-        //private int refreshTime;
-        #endregion IBall
-
-        #region private
-        private Thread ballThread;
-        private bool isRunning = true;
-
-
-        private void threadLoop()
-        {
-            while (isRunning)
-            {
-                Move();
-                Thread.Sleep(RefreshTimeCalculator()); //tu msui być kalkulacja - niech move zwróci refreshtiem
-
-            }
-        }
 
         public void Stop()
         {
-            isRunning = false;
+            _isRunning = false;
         }
 
-        private void RaiseNewPositionChangeNotification()
+        public void SetVelocity(IVector newVelocity)
         {
-            NewPositionNotification?.Invoke(this, Position);
+            if (newVelocity == null)
+                throw new ArgumentNullException(nameof(newVelocity));
+
+            _velocity = new Vector(newVelocity.x, newVelocity.y);
         }
-        private int RefreshTimeCalculator()
+
+        #endregion
+
+        #region Real-Time Movement Loop
+
+        private void ThreadLoop()
         {
-            double accualVelocity = Math.Sqrt(Velocity.x * Velocity.x + Velocity.y * Velocity.y);
-            int maxRefreshTime = 100;
-            int minRefreshTime = 10;
+            while (_isRunning)
+            {
+                try
+                {
+                    DateTime currentTime = DateTime.UtcNow;
+                    double deltaTimeSeconds = (currentTime - _lastUpdateTime).TotalSeconds;
+                    _lastUpdateTime = currentTime;
 
-            double normalizedVelocity = Math.Clamp(accualVelocity, 0.0, 1.0);
-            return Math.Clamp((int)(maxRefreshTime - normalizedVelocity * (maxRefreshTime - minRefreshTime)), minRefreshTime, maxRefreshTime); //refresh time nie powinno być globalne tylko przekazywane przez parametr
+                    Move(deltaTimeSeconds);
+
+                    int sleepMs = CalculateRefreshTime();
+                    Thread.Sleep(sleepMs);
+                }
+                catch (ThreadInterruptedException)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    AddDiagnosticEntry($"ERROR in ThreadLoop: {ex.Message}");
+                }
+            }
         }
 
-        private void Move()
+        private void Move(double deltaTimeSeconds)
         {
-            int refreshTime = RefreshTimeCalculator();
-            Position = new Vector(Position.x + (Velocity.x * refreshTime / 1000), Position.y + (Velocity.y * refreshTime / 1000)); 
+            _position = new Vector(
+                _position.x + (_velocity.x * deltaTimeSeconds),
+                _position.y + (_velocity.y * deltaTimeSeconds)
+            );
 
-            RaiseNewPositionChangeNotification();
+            AddDiagnosticEntry($"Pos=({_position.x:F2},{_position.y:F2}); " +
+                             $"Vel=({_velocity.x:F2},{_velocity.y:F2}); " +
+                             $"dt={deltaTimeSeconds * 1000:F1}ms");
 
+            NewPositionNotification?.Invoke(this, new Vector(_position.x, _position.y));
         }
 
-        #endregion private
+        #endregion
+
+        #region Refresh Time Calculator
+
+        private int CalculateRefreshTime()
+        {
+            double actualVelocity = Math.Sqrt(_velocity.x * _velocity.x + _velocity.y * _velocity.y);
+
+            const int maxRefreshTime = 50;
+            const int minRefreshTime = 10;
+
+            double normalizedVelocity = Math.Clamp(actualVelocity / 100.0, 0.0, 1.0);
+
+            return Math.Clamp(
+                (int)(maxRefreshTime - normalizedVelocity * (maxRefreshTime - minRefreshTime)),
+                minRefreshTime,
+                maxRefreshTime
+            );
+        }
+
+        #endregion
+
+        #region Diagnostic Data Management
+
+        private void AddDiagnosticEntry(string entry)
+        {
+            string timestampedEntry = $"{DateTime.UtcNow:O}; {entry}";
+
+            lock (_diagnosticLock)
+            {
+                _diagnosticBuffer.Add(timestampedEntry);
+
+                //Zapobieganie przepełnieniu bufora diagnostycznego
+                if (_diagnosticBuffer.Count > 1000)
+                {
+                    _diagnosticBuffer.RemoveAt(0);
+                }
+            }
+        }
+        public void SaveDiagnosticsToFile(string folderPath)
+        {
+            List<string> snapshot;
+            lock (_diagnosticLock)
+            {
+                if (_diagnosticBuffer.Count == 0)
+                    return;
+
+                snapshot = new List<string>(_diagnosticBuffer);
+                _diagnosticBuffer.Clear();
+            }
+
+            // Operacja I/O może być kosztowna, więc wykonujemy ją poza blokiem lock
+            try
+            {
+                Directory.CreateDirectory(folderPath);
+                string fileName = $"ball_{GetHashCode():X}_{DateTime.Now:yyyyMMdd_HHmmss}.log";
+                string fullPath = Path.Combine(folderPath, fileName);
+
+                File.WriteAllLines(fullPath, snapshot);
+            }
+            catch (Exception ex)
+            { 
+                AddDiagnosticEntry($"Failed to save diagnostics: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region IDisposable
+
+        public void Dispose()
+        {
+            _isRunning = false;
+
+            if (_ballThread.IsAlive && !_ballThread.Join(TimeSpan.FromSeconds(2)))
+            {
+                try
+                {
+                    _ballThread.Interrupt();
+                    _ballThread.Join(TimeSpan.FromSeconds(1));
+                }
+                catch (ThreadStateException)
+                {
+                    // Wątek już jest zakończony, więc nic nie rób
+                }
+            }
+
+            string logsFolder = Path.Combine(
+                Directory.GetCurrentDirectory(),
+                "logs"
+            );
+            SaveDiagnosticsToFile(logsFolder);
+        }
+
+        #endregion
     }
 }
