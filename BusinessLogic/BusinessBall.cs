@@ -8,138 +8,189 @@
 //
 //_____________________________________________________________________________________________________________________________________
 
-
+using System;
+using System.Collections.Generic;
+using System.Threading;
 using TP.ConcurrentProgramming.Data;
 
 namespace TP.ConcurrentProgramming.BusinessLogic
 {
     internal class Ball : IBall
     {
-        Data.IBall dataBall;
-        List<Ball> ballList = new List<Ball>();
-        private readonly object ballLock = new();
+        private readonly Data.IBall _dataBall;
+        private readonly List<Ball> _allBalls;
+        private static readonly object _globalCollisionLock = new object();
 
-        public Ball(Data.IBall ball, double w, double h, double border, List<Ball> otherBalls)
+        public Ball(Data.IBall dataBall, double tableWidth, double tableHeight, double tableBorder, List<Ball> allBalls)
         {
-            dataBall = ball;
-            TableWidth = w;
-            TableHeight = h;
-            TableBorder = border;
-            ball.NewPositionNotification += RaisePositionChangeEvent;
-            ballList = otherBalls;
+            _dataBall = dataBall ?? throw new ArgumentNullException(nameof(dataBall));
+            _allBalls = allBalls ?? throw new ArgumentNullException(nameof(allBalls));
 
+            TableWidth = tableWidth;
+            TableHeight = tableHeight;
+            TableBorder = tableBorder;
+
+            _dataBall.NewPositionNotification += OnPositionChanged;
         }
 
-        #region IBall
+        #region IBall Implementation
 
         public event EventHandler<IPosition>? NewPositionNotification;
 
-        #endregion IBall
-
-        #region private
         public double TableWidth { get; }
         public double TableHeight { get; }
         public double TableBorder { get; }
 
+        #endregion
+
+        #region Internal Methods
+
         internal void Stop()
         {
-            dataBall.Stop();
+            _dataBall.Stop();
         }
 
-        private void RaisePositionChangeEvent(object? sender, Data.IVector e)
+        #endregion
+
+        #region Event Handlers
+
+        private void OnPositionChanged(object? sender, Data.IVector newPosition)
         {
-            HandleWalls(e);
+            HandleWallCollisions(newPosition);
+
             HandleBallCollisions();
-            NewPositionNotification?.Invoke(this, new Position(e.x, e.y));
+
+            NewPositionNotification?.Invoke(this, new Position(newPosition.x, newPosition.y));
         }
-        private void HandleWalls(Data.IVector position)
+
+        #endregion
+
+        #region Collision Detection and Response
+
+        private void HandleWallCollisions(Data.IVector position)
         {
-            lock (ballLock)
+            double x = position.x;
+            double y = position.y;
+            double radius = _dataBall.Diameter / 2.0;
+
+            bool collisionOccurred = false;
+            var currentVelocity = _dataBall.Velocity;
+            double newVelX = currentVelocity.x;
+            double newVelY = currentVelocity.y;
+
+            // Left/Right collisions
+            if (position.x >= TableWidth - _dataBall.Diameter - 2 * TableBorder || position.x <= 0)
             {
-                if (position.x >= TableWidth - dataBall.Diameter - 2 * TableBorder || position.x <= 0)
-                {
-                    dataBall.Velocity.x = -dataBall.Velocity.x;
-                    Logger.Instance.Log(dataBall, "Wykryto zderzenie z ścianą. Składowa X prędkości została odwrócona.", LogLevel.Info);
-                }
-                if (position.y >= TableHeight - dataBall.Diameter - 2 * TableBorder || position.y <= 0)
-                {
-                    dataBall.Velocity.y = -dataBall.Velocity.y;
-                    Logger.Instance.Log(dataBall, "Wykryto zderzenie z ścianą. Składowa Y prędkości została odwrócona.", LogLevel.Info);
-                }
+                newVelX = -currentVelocity.x;
+                collisionOccurred = true;
+                Logger.Instance.Log(_dataBall, "Wall collision detected: X-axis reflection", LogLevel.Info);
+            }
+
+            // Top/Bottom collisions
+            if (position.y >= TableHeight - _dataBall.Diameter - 2 * TableBorder || position.y <= 0)
+            {
+                newVelY = -currentVelocity.y;
+                collisionOccurred = true;
+                Logger.Instance.Log(_dataBall, "Wall collision detected: Y-axis reflection", LogLevel.Info);
+            }
+
+            if (collisionOccurred)
+            {
+                var newVelocity = new Data.Vector(newVelX, newVelY);
+                _dataBall.SetVelocity(newVelocity);
             }
         }
+
         private void HandleBallCollisions()
         {
-
-            foreach (Ball other in ballList.ToList())
+            lock (_globalCollisionLock)
             {
-                //lock (ballLock) // czy to jest w ogóle potrzebne? ~dr Jak zaimplementować sekcję krytyczna, aby była skuteczna? Monitor!!!!! 
-                //{
-                    if (other == this) continue;
-                    bool isLockTaken = false;
-                try 
-                { 
-                    Monitor.Enter(ballLock, ref isLockTaken);
-
-                    double dx = dataBall.Position.x - other.dataBall.Position.x;
-                    double dy = dataBall.Position.y - other.dataBall.Position.y;
-
-                    double distance = Math.Sqrt(dx * dx + dy * dy);
-                    double minDistance = (dataBall.Diameter + other.dataBall.Diameter) / 2;
-
-                    if (distance > 0 && distance <= minDistance)
-                    {
-
-                        double nx = dx / distance;
-                        double ny = dy / distance;
-
-
-                        double vN = dataBall.Velocity.x * nx + dataBall.Velocity.y * ny;
-                        double vN2 = other.dataBall.Velocity.x * nx + other.dataBall.Velocity.y * ny;
-
-                        double m1 = dataBall.Mass;
-                        double m2 = other.dataBall.Mass;
-
-                        double vNp = (vN * (m1 - m2) + 2 * m2 * vN2) / (m1 + m2);
-                        double vN2p = (vN2 * (m2 - m1) + 2 * m1 * vN) / (m1 + m2);
-
-                        double tx = -ny;
-                        double ty = nx;
-                        double v1t = dataBall.Velocity.x * tx + dataBall.Velocity.y * ty;
-                        double v2t = other.dataBall.Velocity.x * tx + other.dataBall.Velocity.y * ty;
-
-                        dataBall.Velocity.x = vNp * nx + v1t * tx;
-                        dataBall.Velocity.y = vNp * ny + v1t * ty;
-                        other.dataBall.Velocity.x = vN2p * nx + v2t * tx;
-                        other.dataBall.Velocity.y = vN2p * ny + v2t * ty;
-
-                        double overlap = minDistance - distance;
-                        if (overlap > 0)
-                        {
-                            dataBall.Position.x += nx * overlap/2;
-                            dataBall.Position.y += ny * overlap/2;
-                            other.dataBall.Position.x -= nx * overlap/2;
-                            other.dataBall.Position.y -= ny * overlap/2;
-                        }
-                        Logger.Instance.Log(
-                            $"Zderzenie kulek: " +
-                            $"Kulka1 [pos=({dataBall.Position.x:0.00}, {dataBall.Position.y:0.00}), vel=({dataBall.Velocity.x:0.00}, {dataBall.Velocity.y:0.00}), " +
-                            $"Kulka2 [pos=({other.dataBall.Position.x:0.00}, {other.dataBall.Position.y:0.00}), vel=({other.dataBall.Velocity.x:0.00}, {other.dataBall.Velocity.y:0.00}), " +
-                            $"dystans={distance:0.00}, minDystans={minDistance:0.00}",
-                            LogLevel.Info
-                        );
-                    }
-                }
-                finally
+                foreach (Ball otherBall in _allBalls)
                 {
-                    if (isLockTaken)
+                    if (otherBall == this)
+                        continue;
+
+                    if (DetectCollision(otherBall))
                     {
-                        Monitor.Exit(ballLock);
+                        ResolveCollision(otherBall);
                     }
                 }
-
-                #endregion private
             }
         }
+
+        private bool DetectCollision(Ball otherBall)
+        {
+            var pos1 = _dataBall.Position;
+            var pos2 = otherBall._dataBall.Position;
+
+            double dx = pos1.x - pos2.x;
+            double dy = pos1.y - pos2.y;
+            double distance = Math.Sqrt(dx * dx + dy * dy);
+            double minDistance = (_dataBall.Diameter + otherBall._dataBall.Diameter) / 2.0;
+
+            return distance > 0 && distance <= minDistance;
+        }
+
+        private void ResolveCollision(Ball otherBall)
+        {
+            var pos1 = _dataBall.Position;
+            var pos2 = otherBall._dataBall.Position;
+            var vel1 = _dataBall.Velocity;
+            var vel2 = otherBall._dataBall.Velocity;
+
+            double dx = pos1.x - pos2.x;
+            double dy = pos1.y - pos2.y;
+            double distance = Math.Sqrt(dx * dx + dy * dy);
+
+            if (distance == 0) return;
+
+            double nx = dx / distance;
+            double ny = dy / distance;
+
+            double relativeVelX = vel1.x - vel2.x;
+            double relativeVelY = vel1.y - vel2.y;
+            double velocityAlongNormal = relativeVelX * nx + relativeVelY * ny;
+
+            if (velocityAlongNormal > 0) return;
+
+            double mass1 = _dataBall.Mass;
+            double mass2 = otherBall._dataBall.Mass;
+            double impulse = 2 * velocityAlongNormal / (mass1 + mass2);
+
+            double impulseX = impulse * nx;
+            double impulseY = impulse * ny;
+
+            var newVel1 = new Data.Vector(
+                vel1.x - impulseX * mass2,
+                vel1.y - impulseY * mass2
+            );
+
+            var newVel2 = new Data.Vector(
+                vel2.x + impulseX * mass1,
+                vel2.y + impulseY * mass1
+            );
+
+            _dataBall.SetVelocity(newVel1);
+            otherBall._dataBall.SetVelocity(newVel2);
+
+            double minDistance = (_dataBall.Diameter + otherBall._dataBall.Diameter) / 2.0;
+            double overlap = minDistance - distance;
+
+            if (overlap > 0)
+            {
+                double separationX = nx * overlap * 0.5;
+                double separationY = ny * overlap * 0.5;
+            }
+
+            Logger.Instance.Log(
+                $"Ball collision resolved: " +
+                $"Ball1[pos=({pos1.x:F2},{pos1.y:F2}), vel=({newVel1.x:F2},{newVel1.y:F2})] " +
+                $"Ball2[pos=({pos2.x:F2},{pos2.y:F2}), vel=({newVel2.x:F2},{newVel2.y:F2})] " +
+                $"distance={distance:F2}, minDistance={minDistance:F2}",
+                LogLevel.Info
+            );
+        }
+
+        #endregion
     }
 }

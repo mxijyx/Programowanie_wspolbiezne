@@ -17,28 +17,29 @@ namespace TP.ConcurrentProgramming.Data
 {
     internal class Ball : IBall, IDisposable
     {
-        #region Pola
-
-        // Prywatne pole prędkości; nikt poza tą klasą nie może go zmienić
+        #region Fields
         private Vector _velocity;
+        private Vector _position;
 
-        // Bufor diagnostyczny w pamięci:
         private readonly List<string> _diagnosticBuffer = new List<string>();
+        private readonly object _diagnosticLock = new object();
 
-        // Wątek odpowiedzialny za pętlę ruchu:
         private readonly Thread _ballThread;
         private volatile bool _isRunning = true;
 
+        private DateTime _lastUpdateTime;
+
         #endregion
 
-        #region Konstruktor
+        #region Constructor
 
         internal Ball(Vector initialPosition, Vector initialVelocity, double mass, double diameter)
         {
-            Position = initialPosition;
-            _velocity = initialVelocity;
+            _position = new Vector(initialPosition.x, initialPosition.y);
+            _velocity = new Vector(initialVelocity.x, initialVelocity.y);
             Mass = mass;
             Diameter = diameter;
+            _lastUpdateTime = DateTime.UtcNow;
 
             _ballThread = new Thread(ThreadLoop)
             {
@@ -51,84 +52,86 @@ namespace TP.ConcurrentProgramming.Data
 
         #endregion
 
-        #region IBall
+        #region IBall Implementation
 
         public event EventHandler<IVector>? NewPositionNotification;
 
-        // Zwracamy zawsze kopię wektora prędkości. Nikt z zewnątrz nie może zmienić oryginału.
         public IVector Velocity => new Vector(_velocity.x, _velocity.y);
 
-        // Pozycja jest ustawiana wewnętrznie – nikt poza tą klasą (lub wewnętrznie) nie zmienia jej
-        public IVector Position { get; internal set; }
+        public IVector Position => new Vector(_position.x, _position.y);
 
         public double Mass { get; }
         public double Diameter { get; }
-
-        #endregion
-
-        #region Pętla ruchu (Real‐Time Loop)
-
-        private void ThreadLoop()
-        {
-            while (_isRunning)
-            {
-                // Oblicz interwał (raz na iterację):
-                int sleepMs = RefreshTimeCalculator();
-
-                // Zaktualizuj pozycję + zbierz dane diagnostyczne:
-                Move(sleepMs);
-
-                // Poczekaj dokładnie tyle, ile wyliczyliśmy
-                Thread.Sleep(sleepMs);
-            }
-        }
 
         public void Stop()
         {
             _isRunning = false;
         }
 
-        #endregion
-
-        #region Metoda Move + diagnostyka
-
-        private void Move(int refreshTime)
+        public void SetVelocity(IVector newVelocity)
         {
-            // 1) Pobierz aktualny czas
-            DateTime now = DateTime.UtcNow;
+            if (newVelocity == null)
+                throw new ArgumentNullException(nameof(newVelocity));
 
-            // 2) Zaktualizuj pozycję (korzystając z prywatnego _velocity)
-            Position = new Vector(
-                Position.x + (_velocity.x * refreshTime / 1000.0),
-                Position.y + (_velocity.y * refreshTime / 1000.0)
-            );
-
-            // 3) Dodaj wiersz do bufora diagnostycznego (tylko pamięć):
-            string line = $"{now:O}; " +
-                          $"Pos=({Position.x:F2},{Position.y:F2}); " +
-                          $"Vel=({_velocity.x:F2},{_velocity.y:F2}); " +
-                          $"Δt={refreshTime}ms";
-            lock (_diagnosticBuffer)
-            {
-                _diagnosticBuffer.Add(line);
-            }
-
-            // 4) Powiadom Warstwę Logiki (lub wyższą warstwę) o nowej pozycji:
-            NewPositionNotification?.Invoke(this, Position);
+            _velocity = new Vector(newVelocity.x, newVelocity.y);
         }
 
         #endregion
 
-        #region RefreshTimeCalculator
+        #region Real-Time Movement Loop
 
-        private int RefreshTimeCalculator()
+        private void ThreadLoop()
         {
-            // Oblicz długość wektora prędkości (w jednostkach/s)
+            while (_isRunning)
+            {
+                try
+                {
+                    DateTime currentTime = DateTime.UtcNow;
+                    double deltaTimeSeconds = (currentTime - _lastUpdateTime).TotalSeconds;
+                    _lastUpdateTime = currentTime;
+
+                    Move(deltaTimeSeconds);
+
+                    int sleepMs = CalculateRefreshTime();
+                    Thread.Sleep(sleepMs);
+                }
+                catch (ThreadInterruptedException)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    AddDiagnosticEntry($"ERROR in ThreadLoop: {ex.Message}");
+                }
+            }
+        }
+
+        private void Move(double deltaTimeSeconds)
+        {
+            _position = new Vector(
+                _position.x + (_velocity.x * deltaTimeSeconds),
+                _position.y + (_velocity.y * deltaTimeSeconds)
+            );
+
+            AddDiagnosticEntry($"Pos=({_position.x:F2},{_position.y:F2}); " +
+                             $"Vel=({_velocity.x:F2},{_velocity.y:F2}); " +
+                             $"dt={deltaTimeSeconds * 1000:F1}ms");
+
+            NewPositionNotification?.Invoke(this, new Vector(_position.x, _position.y));
+        }
+
+        #endregion
+
+        #region Refresh Time Calculator
+
+        private int CalculateRefreshTime()
+        {
             double actualVelocity = Math.Sqrt(_velocity.x * _velocity.x + _velocity.y * _velocity.y);
 
-            const int maxRefreshTime = 100;
+            const int maxRefreshTime = 50;
             const int minRefreshTime = 10;
-            double normalizedVelocity = Math.Clamp(actualVelocity, 0.0, 1.0);
+
+            double normalizedVelocity = Math.Clamp(actualVelocity / 100.0, 0.0, 1.0);
 
             return Math.Clamp(
                 (int)(maxRefreshTime - normalizedVelocity * (maxRefreshTime - minRefreshTime)),
@@ -139,39 +142,48 @@ namespace TP.ConcurrentProgramming.Data
 
         #endregion
 
-        #region Metoda do zmiany prędkości (tylko Data Layer + przyjaciele/im internal)
+        #region Diagnostic Data Management
 
-        /// <summary>
-        ///   Umożliwia Warstwie Logiki (lub innym klasom w tej samej bibliotece)
-        ///   jednorazową zmianę prędkości kuli. 
-        /// </summary>
-        internal void SetVelocity(Vector newVelocity)
+        private void AddDiagnosticEntry(string entry)
         {
-            _velocity = newVelocity;
+            string timestampedEntry = $"{DateTime.UtcNow:O}; {entry}";
+
+            lock (_diagnosticLock)
+            {
+                _diagnosticBuffer.Add(timestampedEntry);
+
+                //Zapobieganie przepełnieniu bufora diagnostycznego
+                if (_diagnosticBuffer.Count > 1000)
+                {
+                    _diagnosticBuffer.RemoveAt(0);
+                }
+            }
         }
-
-        #endregion
-
-        #region Zapis diagnostyki do pliku
-
-        /// <summary>
-        ///   Zapisuje cały bufor w pamięci na dysk i czyści go. 
-        ///   Każdy wywołujący powinien przekazać ścieżkę do katalogu, np. ".../logs/".
-        /// </summary>
         public void SaveDiagnosticsToFile(string folderPath)
         {
             List<string> snapshot;
-            lock (_diagnosticBuffer)
+            lock (_diagnosticLock)
             {
+                if (_diagnosticBuffer.Count == 0)
+                    return;
+
                 snapshot = new List<string>(_diagnosticBuffer);
                 _diagnosticBuffer.Clear();
             }
 
-            Directory.CreateDirectory(folderPath);
-            string fileName = $"ball_{GetHashCode():X}_{DateTime.Now:yyyyMMdd_HHmmss}.log";
-            string fullPath = Path.Combine(folderPath, fileName);
+            // Operacja I/O może być kosztowna, więc wykonujemy ją poza blokiem lock
+            try
+            {
+                Directory.CreateDirectory(folderPath);
+                string fileName = $"ball_{GetHashCode():X}_{DateTime.Now:yyyyMMdd_HHmmss}.log";
+                string fullPath = Path.Combine(folderPath, fileName);
 
-            File.WriteAllLines(fullPath, snapshot);
+                File.WriteAllLines(fullPath, snapshot);
+            }
+            catch (Exception ex)
+            { 
+                AddDiagnosticEntry($"Failed to save diagnostics: {ex.Message}");
+            }
         }
 
         #endregion
@@ -180,18 +192,23 @@ namespace TP.ConcurrentProgramming.Data
 
         public void Dispose()
         {
-            // 1) Zatrzymaj pętlę ruchu
-            Stop();
+            _isRunning = false;
 
-            // 2) Poczekaj, aż wątek zakończy ostatnią iterację
-            if (!_ballThread.Join(TimeSpan.FromSeconds(3)))
+            if (_ballThread.IsAlive && !_ballThread.Join(TimeSpan.FromSeconds(2)))
             {
-                // opcjonalnie: Debug.WriteLine("Wątek kuli nie zakończył się w terminie");
+                try
+                {
+                    _ballThread.Interrupt();
+                    _ballThread.Join(TimeSpan.FromSeconds(1));
+                }
+                catch (ThreadStateException)
+                {
+                    // Wątek już jest zakończony, więc nic nie rób
+                }
             }
 
-            // 3) Wypisz zgromadzone dane diagnostyczne do osobnego pliku
             string logsFolder = Path.Combine(
-                Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory)!,
+                Directory.GetCurrentDirectory(),
                 "logs"
             );
             SaveDiagnosticsToFile(logsFolder);

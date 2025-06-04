@@ -8,10 +8,12 @@
 //
 //_____________________________________________________________________________________________________________________________________
 
+using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Numerics;
+using System.Threading;
 using TP.ConcurrentProgramming.Data;
 using UnderneathLayerAPI = TP.ConcurrentProgramming.Data.DataAbstractAPI;
 
@@ -19,75 +21,82 @@ namespace TP.ConcurrentProgramming.BusinessLogic
 {
     internal class BusinessLogicImplementation : BusinessLogicAbstractAPI
     {
-        #region ctor
+        #region Constructor
 
         public BusinessLogicImplementation() : this(null)
-        { }
+        {
+        }
 
         internal BusinessLogicImplementation(UnderneathLayerAPI? underneathLayer)
         {
-            layerBellow = underneathLayer == null ? UnderneathLayerAPI.GetDataLayer() : underneathLayer;
+            _layerBellow = underneathLayer ?? UnderneathLayerAPI.GetDataLayer();
         }
 
-        #endregion ctor
+        #endregion
 
-        #region BusinessLogicAbstractAPI
+        #region BusinessLogicAbstractAPI Implementation
 
         public override void Dispose()
         {
-            if (Disposed)
+            if (_disposed)
                 throw new ObjectDisposedException(nameof(BusinessLogicImplementation));
-            foreach (var ball in ballList)
+
+            foreach (var ball in _ballList)
             {
                 ball.Stop();
             }
-            layerBellow.Dispose();
+
+            _layerBellow.Dispose();
+
             Logger.Instance.Dispose();
-            Disposed = true;
+
+            _disposed = true;
         }
 
         public override void Start(int numberOfBalls, Action<IPosition, IBall> upperLayerHandler, double width, double height, double border)
         {
-            Logger.Instance.Log($"Program rozpoczęto, liczba kul: {numberOfBalls}", LogLevel.Debug);
-
-            if (Disposed)
+            if (_disposed)
                 throw new ObjectDisposedException(nameof(BusinessLogicImplementation));
             if (upperLayerHandler == null)
                 throw new ArgumentNullException(nameof(upperLayerHandler));
-            layerBellow.Start(numberOfBalls, (startingPosition, databall) =>
+
+            Logger.Instance.Log($"Starting simulation with {numberOfBalls} balls", LogLevel.Info);
+
+            _layerBellow.Start(numberOfBalls, (startingPosition, dataBall) =>
             {
-                var ball = new Ball(databall, width, height, border, ballList);
-                ballList.Add(ball);
+                var ball = new Ball(dataBall, width, height, border, _ballList);
+                _ballList.Add(ball);
+
                 upperLayerHandler(new Position(startingPosition.x, startingPosition.y), ball);
             });
         }
 
+        #endregion
 
-        #region private
+        #region Private Fields
 
-        private bool Disposed = false;
-        private List<Ball> ballList = new List<Ball>();
+        private bool _disposed = false;
+        private readonly List<Ball> _ballList = new List<Ball>();
+        private readonly UnderneathLayerAPI _layerBellow;
 
-        private readonly UnderneathLayerAPI layerBellow;
+        #endregion
 
-        #endregion private
-
-        #region TestingInfrastructure
+        #region Testing Infrastructure
 
         [Conditional("DEBUG")]
         internal void CheckObjectDisposed(Action<bool> returnInstanceDisposed)
         {
-            returnInstanceDisposed(Disposed);
+            returnInstanceDisposed(_disposed);
         }
 
-        #endregion TestingInfrastructure
-        #endregion BusinessLogicAbstractAPI
+        #endregion
     }
 
-    #region Logger
+    #region Logger Implementation
+
     internal class Logger : ILogger, IDisposable
     {
-        private readonly BlockingCollection<string> _logQueue = new BlockingCollection<string>();
+        private readonly BlockingCollection<LogEntry> _logQueue = new BlockingCollection<LogEntry>();
         private static readonly Lazy<Logger> _instance = new Lazy<Logger>(() => new Logger());
         public static Logger Instance => _instance.Value;
 
@@ -97,28 +106,25 @@ namespace TP.ConcurrentProgramming.BusinessLogic
 
         public string LogPath => _logFilePath;
 
-        public Logger()
+        private Logger()
         {
-            // Znajdź katalog repozytorium i utwórz folder logs
             string? repoRoot = FindRepoRoot(AppDomain.CurrentDomain.BaseDirectory);
             string logsDir = Path.Combine(repoRoot ?? AppDomain.CurrentDomain.BaseDirectory, "logs");
             Directory.CreateDirectory(logsDir);
 
-            // Wygeneruj unikalną nazwę pliku
             string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
             _logFilePath = Path.Combine(logsDir, $"log_{timestamp}.txt");
 
-            // Uruchom wątek przetwarzający
             _processingThread = new Thread(ProcessLogQueue)
             {
                 Name = "LogProcessorThread",
                 IsBackground = true,
-                Priority = ThreadPriority.BelowNormal // Niski priorytet, aby nie wpływać na kulki
+                Priority = ThreadPriority.BelowNormal
             };
             _processingThread.Start();
 
-            // Pierwszy wpis w logu
-            EnqueueLog($"[Info] Logger initialized at {DateTime.Now:HH:mm:ss.fff}", LogLevel.Info);
+            // First log entry
+            EnqueueLog("Logger initialized", LogLevel.Debug);
         }
 
         private static string? FindRepoRoot(string startDir)
@@ -126,10 +132,8 @@ namespace TP.ConcurrentProgramming.BusinessLogic
             var dir = new DirectoryInfo(startDir);
             while (dir != null)
             {
-                if (Directory.Exists(Path.Combine(dir.FullName, ".git")))
-                    return dir.FullName;
-
-                if (dir.GetFiles("*.sln").Any())
+                if (Directory.Exists(Path.Combine(dir.FullName, ".git")) ||
+                    dir.GetFiles("*.sln").Any())
                     return dir.FullName;
 
                 dir = dir.Parent;
@@ -139,40 +143,60 @@ namespace TP.ConcurrentProgramming.BusinessLogic
 
         private void ProcessLogQueue()
         {
-            using var writer = new StreamWriter(_logFilePath, append: true) { AutoFlush = true };
-
-            while (_isRunning || !_logQueue.IsCompleted)
+            try
             {
-                try
+                using var writer = new StreamWriter(_logFilePath, append: true) { AutoFlush = true };
+
+                while (_isRunning || !_logQueue.IsCompleted)
                 {
-                    // Oczekuj max 1s na wiadomość
-                    if (_logQueue.TryTake(out var entry, TimeSpan.FromSeconds(1)))
+                    try
                     {
-                        writer.WriteLine(entry);
+                        if (_logQueue.TryTake(out var entry, TimeSpan.FromSeconds(1)))
+                        {
+                            writer.WriteLine(FormatLogEntry(entry));
+                        }
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // Kolekcja została zamknięta, przerywamy przetwarzanie
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"LOG PROCESSING ERROR: {ex.Message}");
                     }
                 }
-                catch (Exception ex)
+
+                // Spłucz pozostałe wpisy w kolejce
+                while (_logQueue.TryTake(out var remainingEntry))
                 {
-                    Debug.WriteLine($"LOG PROCESSING ERROR: {ex.Message}");
+                    writer.WriteLine(FormatLogEntry(remainingEntry));
                 }
             }
-
-            // Opróżnij resztę kolejki przed zamknięciem
-            while (_logQueue.TryTake(out var remainingEntry))
+            catch (Exception ex)
             {
-                writer.WriteLine(remainingEntry);
+                Debug.WriteLine($"CRITICAL LOG ERROR: {ex.Message}");
             }
         }
 
         private void EnqueueLog(string message, LogLevel level)
         {
-            var entry = $"[{level}] {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - {message}";
-
-            if (!_logQueue.TryAdd(entry, millisecondsTimeout: 50))
+            var entry = new LogEntry
             {
-                // Jeśli kolejka jest pełna, odrzuć wpis (nie blokuj wątku wywołującego)
+                Timestamp = DateTime.Now,
+                Level = level,
+                Message = message
+            };
+
+            if (!_logQueue.TryAdd(entry, millisecondsTimeout: 10))
+            {
                 Debug.WriteLine("LOG QUEUE FULL - ENTRY DROPPED");
             }
+        }
+
+        private string FormatLogEntry(LogEntry entry)
+        {
+            return $"[{entry.Level}] {entry.Timestamp:yyyy-MM-dd HH:mm:ss.fff} - {entry.Message}";
         }
 
         public void Log(string message, LogLevel level = LogLevel.Info)
@@ -184,22 +208,25 @@ namespace TP.ConcurrentProgramming.BusinessLogic
         {
             if (ball == null)
             {
-                EnqueueLog($"[Logger] Ball is null: {message}", LogLevel.Critical);
-                throw new NullReferenceException("Ball cannot be null");
+                EnqueueLog($"[ERROR] Ball is null: {message}", LogLevel.Critical);
+                return;
             }
 
             try
-            { 
+            {
+                var position = ball.Position;
+                var velocity = ball.Velocity;
+
                 EnqueueLog(
-                    $"Ball at ({ball.Position.x:F2}, {ball.Position.y:F2}) " +
-                    $"Vel: ({ball.Velocity.x:F2}, {ball.Velocity.y:F2}) " +
-                    $"Diameter: {ball.Diameter:F2}: {message}",
+                    $"Ball[pos=({position.x:F2},{position.y:F2}), " +
+                    $"vel=({velocity.x:F2},{velocity.y:F2}), " +
+                    $"d={ball.Diameter:F2}]: {message}",
                     level
                 );
             }
             catch (Exception ex)
             {
-                EnqueueLog($"[Logger] Exception logging ball info: {ex.Message}", LogLevel.Error);
+                EnqueueLog($"[ERROR] Exception logging ball info: {ex.Message}", LogLevel.Error);
             }
         }
 
@@ -211,16 +238,24 @@ namespace TP.ConcurrentProgramming.BusinessLogic
         public void Dispose()
         {
             _isRunning = false;
-            EnqueueLog("Program zakończono pomyślnie.", LogLevel.Info);
-            EnqueueLog("Koniec dziennika zdarzeń", LogLevel.Debug);
-            
+            EnqueueLog("Simulation ended successfully", LogLevel.Info);
+            EnqueueLog("End of event log", LogLevel.Debug);
+
             _logQueue.CompleteAdding();
 
-            // Poczekaj maksymalnie 3s na zakończenie wątku
             if (!_processingThread.Join(TimeSpan.FromSeconds(3)))
             {
                 Debug.WriteLine("Log thread did not terminate in time");
             }
+
+            _logQueue.Dispose();
+        }
+
+        private class LogEntry
+        {
+            public DateTime Timestamp { get; set; }
+            public LogLevel Level { get; set; }
+            public string Message { get; set; } = string.Empty;
         }
     }
 
@@ -233,5 +268,6 @@ namespace TP.ConcurrentProgramming.BusinessLogic
         Error,
         Critical
     }
-    #endregion Logger
+
+    #endregion
 }
