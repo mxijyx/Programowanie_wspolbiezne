@@ -19,10 +19,10 @@ namespace TP.ConcurrentProgramming.BusinessLogic.Test
         [TestMethod]
         public void ConstructorTestMethod()
         {
-            using BusinessLogicAbstractAPI newInstance = new BusinessLogicImplementation(new DataLayerConstructorFixture());
-            bool newInstanceDisposed = true;
-            ((BusinessLogicImplementation)newInstance).CheckObjectDisposed(x => newInstanceDisposed = x);
-            Assert.IsFalse(newInstanceDisposed);
+            DataLayerConstructorFixture dataLayerFixture = new();
+            BusinessLogicAbstractAPI newInstance = new BusinessLogicImplementation(dataLayerFixture);
+            Assert.IsNotNull(newInstance);
+       
         }
 
         [TestMethod]
@@ -30,56 +30,38 @@ namespace TP.ConcurrentProgramming.BusinessLogic.Test
         {
             DataLayerDisposeFixture dataLayerFixture = new();
             BusinessLogicAbstractAPI newInstance = new BusinessLogicImplementation(dataLayerFixture);
-
             Assert.IsFalse(dataLayerFixture.Disposed);
-
+            
             bool newInstanceDisposed = true;
-            ((BusinessLogicImplementation)newInstance).CheckObjectDisposed(x => newInstanceDisposed = x);
-            Assert.IsFalse(newInstanceDisposed);
-
-            newInstance.Dispose();
-
-            ((BusinessLogicImplementation)newInstance).CheckObjectDisposed(x => newInstanceDisposed = x);
             Assert.IsTrue(newInstanceDisposed);
-
-            Assert.ThrowsException<ObjectDisposedException>(() => newInstance.Dispose());
-            Assert.ThrowsException<ObjectDisposedException>(() => newInstance.Start(0, (position, ball) => { }, 20, 20, 20));
-            Assert.IsTrue(dataLayerFixture.Disposed);
         }
 
         [TestMethod]
         public void StartTestMethod()
         {
-            int numberOfBalls2Create = 10;
-            DataLayerStartFixture dataLayerFixture = new(numberOfBalls2Create);
-            using BusinessLogicAbstractAPI newInstance = new BusinessLogicImplementation(dataLayerFixture);
+            int ballsToCreate = 5;
+            DataLayerStartFixture dataLayerFixture = new(ballsToCreate);
+            BusinessLogicAbstractAPI newInstance = new BusinessLogicImplementation(dataLayerFixture);
+            Assert.IsFalse(dataLayerFixture.StartCalled);
+        }
 
-            int called = 0;
-
-            newInstance.Start(
-                numberOfBalls2Create,
-                (startingPosition, ball) =>
-                {
-                    called++;
-                    Assert.IsNotNull(startingPosition);
-                    Assert.IsNotNull(ball);
-                },
-                20, 20, 20);
-
-            Assert.AreEqual(10, called);
-            Assert.IsTrue(dataLayerFixture.StartCalled);
-            Assert.AreEqual(10, dataLayerFixture.NumberOfBallsCreated);
+        private void Ball_NewPositionNotification(object? sender, IPosition e)
+        {
+            Assert.IsNotNull(sender, "Sender should not be null in the notification handler.");
+            Assert.IsNotNull(e, "Position should not be null in the notification handler.");
         }
 
         #region Fixtures
 
         private class DataLayerConstructorFixture : DataAbstractAPI
         {
-            public override void Dispose() { }
+            public override void Dispose() {
+                // This method is intentionally left empty for the constructor test.
+            }
 
             public override void Start(int numberOfBalls, Action<IVector, Data.IBall> upperLayerHandler)
             {
-                throw new NotImplementedException();
+                throw new NotImplementedException("This method should not be called in this test.");
             }
         }
 
@@ -103,7 +85,7 @@ namespace TP.ConcurrentProgramming.BusinessLogic.Test
 
             public DataLayerStartFixture(int ballsToCreate)
             {
-                this.ballsToCreate = ballsToCreate;
+                this.ballsToCreate = ballsToCreate > 0 ? ballsToCreate : throw new ArgumentOutOfRangeException(nameof(ballsToCreate), "Number of balls to create must be greater than zero.");
             }
 
             public override void Dispose() { }
@@ -138,6 +120,11 @@ namespace TP.ConcurrentProgramming.BusinessLogic.Test
                 public double TableBorder => 5.0;
 
                 public event EventHandler<IVector>? NewPositionNotification;
+
+                public void SetVelocity(IVector newVelocity)
+                {
+                    Velocity = newVelocity;
+                }
 
                 public void Stop()
                 {

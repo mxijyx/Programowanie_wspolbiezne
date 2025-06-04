@@ -65,4 +65,9 @@ namespace TP.ConcurrentProgramming.BusinessLogic
         double TableBorder { get; }
         event EventHandler<IPosition> NewPositionNotification;
     }
+
+    interface ILogger
+    {
+        void Log(Data.IBall ball, string message);
+    }
 }

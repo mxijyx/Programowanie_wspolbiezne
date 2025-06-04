@@ -65,6 +65,11 @@ namespace TP.ConcurrentProgramming.BusinessLogic.Test
             }
 
             public void Stop() { }
+
+            public void SetVelocity(IVector newVelocity)
+            {
+                throw new NotImplementedException();
+            }
         }
 
         private class VectorFixture : Data.IVector
