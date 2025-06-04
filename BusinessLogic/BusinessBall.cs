@@ -8,9 +8,6 @@
 //
 //_____________________________________________________________________________________________________________________________________
 
-
-using TP.ConcurrentProgramming.Data;
-
 namespace TP.ConcurrentProgramming.BusinessLogic
 {
     internal class Ball : IBall
