@@ -37,7 +37,7 @@ namespace TP.ConcurrentProgramming.Data
             {
                 Vector startingPosition = new(random.Next(100, 400 - 100), random.Next(100, 400 - 100));
                 Vector startingSpeed = new(random.Next(-25, 30), random.Next(-25, 30));
-                Ball newBall = new(startingPosition, startingSpeed, 100, 20);
+                Ball newBall = new(startingPosition, startingSpeed);
                 upperLayerHandler(startingPosition, newBall);
                 BallsList.Add(newBall);
             }
@@ -54,6 +54,7 @@ namespace TP.ConcurrentProgramming.Data
                 if (disposing)
                 {
                     BallsList.Clear();
+                    Logger.Instance.Dispose();
                 }
                 Disposed = true;
             }

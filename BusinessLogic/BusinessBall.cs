@@ -22,8 +22,9 @@ namespace TP.ConcurrentProgramming.BusinessLogic
         private readonly Data.IBall _dataBall;
         private readonly List<Ball> _allBalls;
         private static readonly object _globalCollisionLock = new object();
+        private ILogger logger;
 
-        public Ball(Data.IBall dataBall, double tableWidth, double tableHeight, double tableBorder, List<Ball> allBalls)
+        public Ball(Data.IBall dataBall, double tableWidth, double tableHeight, double tableBorder, List<Ball> allBalls, ILogger logger)
         {
             _dataBall = dataBall ?? throw new ArgumentNullException(nameof(dataBall));
             _allBalls = allBalls ?? throw new ArgumentNullException(nameof(allBalls));
@@ -33,6 +34,8 @@ namespace TP.ConcurrentProgramming.BusinessLogic
             TableBorder = tableBorder;
 
             _dataBall.NewPositionNotification += OnPositionChanged;
+            this.logger = ILogger.CreateDefaultLogger(); 
+
         }
 
         #region IBall Implementation
@@ -73,7 +76,8 @@ namespace TP.ConcurrentProgramming.BusinessLogic
         {
             double x = position.x;
             double y = position.y;
-            double radius = _dataBall.Diameter / 2.0;
+            double diameter = 10; // Assuming a fixed diameter for the ball
+            double radius = 10/2; // Assuming diameter is 10, so radius is 5
 
             bool collisionOccurred = false;
             var currentVelocity = _dataBall.Velocity;
@@ -81,19 +85,19 @@ namespace TP.ConcurrentProgramming.BusinessLogic
             double newVelY = currentVelocity.y;
 
             // Left/Right collisions
-            if (position.x >= TableWidth - _dataBall.Diameter - 2 * TableBorder || position.x <= 0)
+            if (position.x >= TableWidth - diameter - 2 * TableBorder || position.x <= 0)
             {
                 newVelX = -currentVelocity.x;
                 collisionOccurred = true;
-                Logger.Instance.Log(_dataBall, "Wall collision detected: X-axis reflection", LogLevel.Info);
+                logger.Log(position, currentVelocity, Thread.CurrentThread.ManagedThreadId, LogLevel.Info);
             }
 
             // Top/Bottom collisions
-            if (position.y >= TableHeight - _dataBall.Diameter - 2 * TableBorder || position.y <= 0)
+            if (position.y >= TableHeight - diameter - 2 * TableBorder || position.y <= 0)
             {
                 newVelY = -currentVelocity.y;
                 collisionOccurred = true;
-                Logger.Instance.Log(_dataBall, "Wall collision detected: Y-axis reflection", LogLevel.Info);
+                logger.Log(position, currentVelocity, Thread.CurrentThread.ManagedThreadId, LogLevel.Info);
             }
 
             if (collisionOccurred)
@@ -128,7 +132,7 @@ namespace TP.ConcurrentProgramming.BusinessLogic
             double dx = pos1.x - pos2.x;
             double dy = pos1.y - pos2.y;
             double distance = Math.Sqrt(dx * dx + dy * dy);
-            double minDistance = (_dataBall.Diameter + otherBall._dataBall.Diameter) / 2.0;
+            double minDistance = (10 + 10) / 2.0; // Assuming a fixed diameter of 10 for both balls
 
             return distance > 0 && distance <= minDistance;
         }
@@ -139,6 +143,7 @@ namespace TP.ConcurrentProgramming.BusinessLogic
             var pos2 = otherBall._dataBall.Position;
             var vel1 = _dataBall.Velocity;
             var vel2 = otherBall._dataBall.Velocity;
+            var diameter = 10; // Assuming a fixed diameter for the ball
 
             double dx = pos1.x - pos2.x;
             double dy = pos1.y - pos2.y;
@@ -155,8 +160,8 @@ namespace TP.ConcurrentProgramming.BusinessLogic
 
             if (velocityAlongNormal > 0) return;
 
-            double mass1 = _dataBall.Mass;
-            double mass2 = otherBall._dataBall.Mass;
+            double mass1 = 5; //tbc
+            double mass2 = 5; //tbc
             double impulse = 2 * velocityAlongNormal / (mass1 + mass2);
 
             double impulseX = impulse * nx;
@@ -175,7 +180,7 @@ namespace TP.ConcurrentProgramming.BusinessLogic
             _dataBall.SetVelocity(newVel1);
             otherBall._dataBall.SetVelocity(newVel2);
 
-            double minDistance = (_dataBall.Diameter + otherBall._dataBall.Diameter) / 2.0;
+            double minDistance = (diameter+diameter) / 2.0;
             double overlap = minDistance - distance;
 
             if (overlap > 0)
@@ -184,7 +189,7 @@ namespace TP.ConcurrentProgramming.BusinessLogic
                 double separationY = ny * overlap * 0.5;
             }
 
-            Logger.Instance.Log(
+            logger.Log(
                 $"Ball collision resolved: " +
                 $"Ball1[pos=({pos1.x:F2},{pos1.y:F2}), vel=({newVel1.x:F2},{newVel1.y:F2})] " +
                 $"Ball2[pos=({pos2.x:F2},{pos2.y:F2}), vel=({newVel2.x:F2},{newVel2.y:F2})] " +

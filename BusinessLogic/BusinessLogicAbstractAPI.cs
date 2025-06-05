@@ -8,6 +8,8 @@
 //
 //_____________________________________________________________________________________________________________________________________
 
+using TP.ConcurrentProgramming.Data;
+
 namespace TP.ConcurrentProgramming.BusinessLogic
 {
     public abstract class BusinessLogicAbstractAPI : IDisposable
@@ -64,10 +66,5 @@ namespace TP.ConcurrentProgramming.BusinessLogic
         double TableHeight { get; }
         double TableBorder { get; }
         event EventHandler<IPosition> NewPositionNotification;
-    }
-
-    interface ILogger
-    {
-        void Log(Data.IBall ball, string message);
     }
 }

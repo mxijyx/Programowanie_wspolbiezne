@@ -33,12 +33,10 @@ namespace TP.ConcurrentProgramming.Data
 
         #region Constructor
 
-        internal Ball(Vector initialPosition, Vector initialVelocity, double mass, double diameter)
+        internal Ball(Vector initialPosition, Vector initialVelocity)
         {
             _position = new Vector(initialPosition.x, initialPosition.y);
             _velocity = new Vector(initialVelocity.x, initialVelocity.y);
-            Mass = mass;
-            Diameter = diameter;
             _lastUpdateTime = DateTime.UtcNow;
 
             _ballThread = new Thread(ThreadLoop)
@@ -59,9 +57,6 @@ namespace TP.ConcurrentProgramming.Data
         public IVector Velocity => new Vector(_velocity.x, _velocity.y);
 
         public IVector Position => new Vector(_position.x, _position.y);
-
-        public double Mass { get; }
-        public double Diameter { get; }
 
         public void Stop()
         {

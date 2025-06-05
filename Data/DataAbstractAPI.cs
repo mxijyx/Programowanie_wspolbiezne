@@ -63,10 +63,16 @@ namespace TP.ConcurrentProgramming.Data
         event EventHandler<IVector> NewPositionNotification;
         IVector Velocity { get; }
         IVector Position { get; }
-        double Diameter { get; }
-        double Mass { get; }
+        //double Diameter { get; }
+        //double Mass { get; }
 
         void Stop();
         void SetVelocity(IVector newVelocity);
+    }
+    public interface ILogger : IDisposable
+    {
+        void Log(IVector position, IVector velocity, int threadID, LogLevel level);
+        void Log(string message, LogLevel level = LogLevel.Info); //to change (string messaage not optimal for diagnostics)
+        public static ILogger CreateDefaultLogger() => Logger.Instance;
     }
 }

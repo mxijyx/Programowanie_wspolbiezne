@@ -24,7 +24,7 @@ namespace TP.ConcurrentProgramming.BusinessLogic.Test
             // Arrange
             var dataBallFixture = new DataBallFixture();
             var otherBalls = new List<Ball>(); // Przekazujemy pustą listę innych piłek
-            var ball = new Ball(dataBallFixture, 10, 10, 2, otherBalls);
+            var ball = new Ball(dataBallFixture, 10, 10, 2, otherBalls, ILogger.CreateDefaultLogger());
 
             int callbackCount = 0;
             ball.NewPositionNotification += (sender, position) =>
