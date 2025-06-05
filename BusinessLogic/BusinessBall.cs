@@ -76,8 +76,8 @@ namespace TP.ConcurrentProgramming.BusinessLogic
         {
             double x = position.x;
             double y = position.y;
-            double diameter = 10; // Assuming a fixed diameter for the ball
-            double radius = 10/2; // Assuming diameter is 10, so radius is 5
+            double diameter = 20; // Assuming a fixed diameter for the ball
+            double radius = 20/2; // Assuming diameter is 10, so radius is 5
 
             bool collisionOccurred = false;
             var currentVelocity = _dataBall.Velocity;
@@ -132,7 +132,7 @@ namespace TP.ConcurrentProgramming.BusinessLogic
             double dx = pos1.x - pos2.x;
             double dy = pos1.y - pos2.y;
             double distance = Math.Sqrt(dx * dx + dy * dy);
-            double minDistance = (10 + 10) / 2.0; // Assuming a fixed diameter of 10 for both balls
+            double minDistance = (20 + 20) / 2.0; // Assuming a fixed diameter of 10 for both balls
 
             return distance > 0 && distance <= minDistance;
         }
