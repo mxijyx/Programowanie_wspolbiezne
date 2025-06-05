@@ -35,7 +35,7 @@ namespace TP.ConcurrentProgramming.BusinessLogic.Test
             };
 
             // Act
-            dataBallFixture.SimulateMovement();
+            dataBallFixture.SimulateMovement(1.0);
 
             // Assert
             Assert.AreEqual(1, callbackCount, "Notification should be called once");
@@ -48,17 +48,16 @@ namespace TP.ConcurrentProgramming.BusinessLogic.Test
         {
             public Data.IVector Velocity { get; set; } = new VectorFixture(1, 1);
             public Data.IVector Position { get; private set; } = new VectorFixture(0, 0);
-            public double Diameter => 2;
-            public double Mass => 1;
+            
 
             public event EventHandler<Data.IVector>? NewPositionNotification;
 
-            internal void SimulateMovement()
+            internal void SimulateMovement(double deltaTimeSeconds)
             {
                 // Aktualizacja pozycji zgodnie z prędkością
                 Position = new VectorFixture(
-                    Position.x + Velocity.x,
-                    Position.y + Velocity.y
+                    Position.x + Velocity.x*deltaTimeSeconds,
+                    Position.y + Velocity.y*deltaTimeSeconds
                 );
 
                 NewPositionNotification?.Invoke(this, Position);
@@ -68,7 +67,10 @@ namespace TP.ConcurrentProgramming.BusinessLogic.Test
 
             public void SetVelocity(IVector newVelocity)
             {
-                throw new NotImplementedException();
+                if (newVelocity == null)
+                    throw new ArgumentNullException(nameof(newVelocity));
+
+                Velocity = new Vector(newVelocity.x, newVelocity.y);
             }
         }
 
