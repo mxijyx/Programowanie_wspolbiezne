@@ -20,9 +20,7 @@ namespace TP.ConcurrentProgramming.Data
         #region Fields
         private Vector _velocity;
         private Vector _position;
-
-        private readonly List<string> _diagnosticBuffer = new List<string>();
-        private readonly object _diagnosticLock = new object();
+        private int Id;
 
         private readonly Thread _ballThread;
         private volatile bool _isRunning = true;
@@ -33,11 +31,12 @@ namespace TP.ConcurrentProgramming.Data
 
         #region Constructor
 
-        internal Ball(Vector initialPosition, Vector initialVelocity)
+        internal Ball(Vector initialPosition, Vector initialVelocity, int id)
         {
             _position = new Vector(initialPosition.x, initialPosition.y);
             _velocity = new Vector(initialVelocity.x, initialVelocity.y);
             _lastUpdateTime = DateTime.UtcNow;
+            this.Id = id;
 
             _ballThread = new Thread(ThreadLoop)
             {
@@ -58,6 +57,8 @@ namespace TP.ConcurrentProgramming.Data
 
         public IVector Position => new Vector(_position.x, _position.y);
 
+        int IBall.Id => Id;
+
         public void Stop()
         {
             _isRunning = false;
@@ -71,6 +72,10 @@ namespace TP.ConcurrentProgramming.Data
             _velocity = new Vector(newVelocity.x, newVelocity.y);
         }
 
+        public int GetId()
+        {
+            return Id;
+        }
         #endregion
 
         #region Real-Time Movement Loop

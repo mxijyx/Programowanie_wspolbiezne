@@ -37,8 +37,11 @@ namespace TP.ConcurrentProgramming.Data
             {
                 Vector startingPosition = new(random.Next(100, 400 - 100), random.Next(100, 400 - 100));
                 Vector startingSpeed = new(random.Next(-25, 30), random.Next(-25, 30));
-                Ball newBall = new(startingPosition, startingSpeed);
+                Ball newBall = new(startingPosition, startingSpeed, i+1);
                 upperLayerHandler(startingPosition, newBall);
+                Logger.Instance.Log(
+                    $"Ball {newBall.GetId()} created at position {startingPosition.x}, {startingPosition.y} with velocity {startingSpeed.x}, {startingSpeed.y}",
+                    LogLevel.Debug);
                 BallsList.Add(newBall);
             }
         }

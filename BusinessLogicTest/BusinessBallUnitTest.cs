@@ -48,7 +48,8 @@ namespace TP.ConcurrentProgramming.BusinessLogic.Test
         {
             public Data.IVector Velocity { get; set; } = new VectorFixture(1, 1);
             public Data.IVector Position { get; private set; } = new VectorFixture(0, 0);
-            
+
+            public int Id => 1; // Just a dummy ID for testing
 
             public event EventHandler<Data.IVector>? NewPositionNotification;
 

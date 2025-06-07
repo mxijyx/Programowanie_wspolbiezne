@@ -119,6 +119,8 @@ namespace TP.ConcurrentProgramming.BusinessLogic.Test
                 public double TableHeight => 100.0;
                 public double TableBorder => 5.0;
 
+                public int Id => throw new NotImplementedException();
+
                 public event EventHandler<IVector>? NewPositionNotification;
 
                 public void SetVelocity(IVector newVelocity)

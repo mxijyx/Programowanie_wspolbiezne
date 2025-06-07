@@ -89,7 +89,7 @@ namespace TP.ConcurrentProgramming.BusinessLogic
             {
                 newVelX = -currentVelocity.x;
                 collisionOccurred = true;
-                logger.Log(position, currentVelocity, Thread.CurrentThread.ManagedThreadId, LogLevel.Info);
+                logger.Log(position, currentVelocity, _dataBall.Id, LogLevel.Info);
             }
 
             // Top/Bottom collisions
@@ -97,7 +97,7 @@ namespace TP.ConcurrentProgramming.BusinessLogic
             {
                 newVelY = -currentVelocity.y;
                 collisionOccurred = true;
-                logger.Log(position, currentVelocity, Thread.CurrentThread.ManagedThreadId, LogLevel.Info);
+                logger.Log(position, currentVelocity, _dataBall.Id, LogLevel.Info);
             }
 
             if (collisionOccurred)
@@ -191,8 +191,8 @@ namespace TP.ConcurrentProgramming.BusinessLogic
 
             logger.Log(
                 $"Ball collision resolved: " +
-                $"Ball1[pos=({pos1.x:F2},{pos1.y:F2}), vel=({newVel1.x:F2},{newVel1.y:F2})] " +
-                $"Ball2[pos=({pos2.x:F2},{pos2.y:F2}), vel=({newVel2.x:F2},{newVel2.y:F2})] " +
+                $"Ball{_dataBall.Id}[pos=({pos1.x:F2},{pos1.y:F2}), vel=({newVel1.x:F2},{newVel1.y:F2})] " +
+                $"Ball{otherBall._dataBall.Id}[pos=({pos2.x:F2},{pos2.y:F2}), vel=({newVel2.x:F2},{newVel2.y:F2})] " +
                 $"distance={distance:F2}, minDistance={minDistance:F2}",
                 LogLevel.Info
             );
