@@ -84,10 +84,4 @@ namespace TP.ConcurrentProgramming.BusinessLogic
 
         #endregion
     }
-
-    #region Logger Implementation
-
-       
-
-    #endregion
 }

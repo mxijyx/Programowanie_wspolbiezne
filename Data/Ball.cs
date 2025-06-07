@@ -96,7 +96,7 @@ namespace TP.ConcurrentProgramming.Data
                 }
                 catch (Exception ex)
                 {
-                    AddDiagnosticEntry($"ERROR in ThreadLoop: {ex.Message}");
+                    _logger.Log($"ERROR in ThreadLoop: {ex.Message}", LogLevel.Error);
                 }
             }
         }
@@ -108,9 +108,9 @@ namespace TP.ConcurrentProgramming.Data
                 _position.y + (_velocity.y * deltaTimeSeconds)
             );
 
-            AddDiagnosticEntry($"Pos=({_position.x:F2},{_position.y:F2}); " +
-                             $"Vel=({_velocity.x:F2},{_velocity.y:F2}); " +
-                             $"dt={deltaTimeSeconds * 1000:F1}ms");
+            _logger.Log($"Pos=({_position.x:F2},{_position.y:F2}); " +
+                        $"Vel=({_velocity.x:F2},{_velocity.y:F2}); " +
+                        $"dt={deltaTimeSeconds * 1000:F1}ms", LogLevel.Info);
 
             NewPositionNotification?.Invoke(this, new Vector(_position.x, _position.y));
         }
@@ -138,48 +138,7 @@ namespace TP.ConcurrentProgramming.Data
         #endregion
 
         #region Diagnostic Data Management
-
-        private void AddDiagnosticEntry(string entry)
-        {
-            string timestampedEntry = $"{DateTime.UtcNow:O}; {entry}";
-
-            lock (_diagnosticLock)
-            {
-                _diagnosticBuffer.Add(timestampedEntry);
-
-                //Zapobieganie przepełnieniu bufora diagnostycznego
-                if (_diagnosticBuffer.Count > 1000)
-                {
-                    _diagnosticBuffer.RemoveAt(0);
-                }
-            }
-        }
-        public void SaveDiagnosticsToFile(string folderPath)
-        {
-            List<string> snapshot;
-            lock (_diagnosticLock)
-            {
-                if (_diagnosticBuffer.Count == 0)
-                    return;
-
-                snapshot = new List<string>(_diagnosticBuffer);
-                _diagnosticBuffer.Clear();
-            }
-
-            // Operacja I/O może być kosztowna, więc wykonujemy ją poza blokiem lock
-            try
-            {
-                Directory.CreateDirectory(folderPath);
-                string fileName = $"ball_{GetHashCode():X}_{DateTime.Now:yyyyMMdd_HHmmss}.log";
-                string fullPath = Path.Combine(folderPath, fileName);
-
-                File.WriteAllLines(fullPath, snapshot);
-            }
-            catch (Exception ex)
-            { 
-                AddDiagnosticEntry($"Failed to save diagnostics: {ex.Message}");
-            }
-        }
+        private Logger _logger = Logger.Instance;
 
         #endregion
 
@@ -201,12 +160,6 @@ namespace TP.ConcurrentProgramming.Data
                     // Wątek już jest zakończony, więc nic nie rób
                 }
             }
-
-            string logsFolder = Path.Combine(
-                Directory.GetCurrentDirectory(),
-                "logs"
-            );
-            SaveDiagnosticsToFile(logsFolder);
         }
 
         #endregion
